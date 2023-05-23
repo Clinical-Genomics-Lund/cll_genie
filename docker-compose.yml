@@ -1,0 +1,33 @@
+version: '3.9'
+# usage:
+# docker-compose up -d
+# docker-compose down
+services:
+  cll_genie_app:
+    container_name: cll_genie_app
+    build:
+      context: .
+      network: host
+      target: cll_genie_app
+    image: cll_genie:1.0.0
+    network_mode: bridge
+    ports:
+      - "5813:8000"
+    environment:
+      - PYHTONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=wsgi.py
+      - FLASK_DEBUG=1
+      - SCRIPT_NAME=''
+    env_file:
+      - .env
+    restart: always
+    volumes:
+      - "./cll_genie:/cll_genie/cll_genie"
+      - "./wsgi.py:/cll_genie/wsgi.py"
+      - "./config.py:/cll_genie/config.py"
+      - "./version.py:/cll_genie/version.py"
+      - "/data/lymphotrack/cll_results/:/cll_genie/results/"
+      - "/data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/"
+      - "/data/lymphotrack/logs:/cll_genie/logs"
+    command: "python3 /cll_genie/wsgi.py"

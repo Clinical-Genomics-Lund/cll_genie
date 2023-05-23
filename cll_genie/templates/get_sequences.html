@@ -1,0 +1,206 @@
+{% extends "base.html" %} {% block title %}CLL Analysis{% endblock %} {% block
+scripts %}
+<script src="{{ url_for('static', filename='js/validate_selected_seqs_form.js') }}"></script>
+<script src="{{ url_for('static', filename='js/display_selected_file.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tooltip.js') }}"></script>
+{% endblock %} {% block body %}
+<h1 align="center">Start New Analysis</h1>
+<form
+  name="lymphotrack_excel"
+  method="POST"
+  enctype="multipart/form-data"
+  action='#'
+  id="lymphotrack_excel"
+>
+  <div class="table">
+    <table style="width: 100%; align-content: center">
+      <tr>
+        <td style="width: 33%">
+          <div class="form-group">
+            <label for="sampleid">Sample Id</label>
+            <input
+              type="text"
+              class="form-control"
+              id="sampleid"
+              name="sampleid"
+              placeholder="Enter SampleID"
+              value="{{ sample_id }}"
+              disabled="disabled"
+            />
+          </div>
+        </td>
+        <td style="width: 33%">
+          <div class="form-group">
+            <label for="excelheaderrow">Excel Header Row</label>
+            <input
+              type="text"
+              class="form-control"
+              id="excelheaderrow"
+              name="excelheaderrow"
+              placeholder="Enter Excel Header row number (Default = 4)"
+              value="4"
+              required
+            />
+          </div>
+        </td>
+        <td style="width: 33%">
+          <div class="form-group">
+            <label for="Merged % Cutoff">Merged % Cutoff</label>
+            <input
+              type="text"
+              class="form-control"
+              id="merged_per_cutoff"
+              name="merged_per_cutoff"
+              placeholder="Enter Merged Percet Cutoff Value"
+              value="20"
+              required
+            />
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="width: 33%">
+          <div class="form-group">
+            <label for="excelsheetname">Excel Sheet Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="excelsheetname"
+              name="excelsheetname"
+              placeholder="Excel Sheet Name(Default = Merged Read Summary)"
+              value="Merged Read Summary"
+              required
+            />
+          </div>
+        </td>
+        <td style="width: 33%">
+          <div class="form-group">
+            <label for="is_inframe">In-Frame</label>
+            <div class="radio-buttons">
+              <label for="is_inframe">Yes</label>
+              <input
+                type="radio"
+                class="form-control"
+                id="is_inframe"
+                name="is_inframe"
+                value="Y"
+                checked
+              />
+              <label for="is_inframe">No</label>
+              <input
+                type="radio"
+                class="form-control"
+                id="is_inframe"
+                name="is_inframe"
+                value="N"
+              />
+            </div>
+          </div>
+        </td>
+        <td style="width: 33%">
+          <div class="form-group">
+            <label for="no_stop_codon">No Stop Codon</label>
+            <div class="radio-buttons">
+              <label for="no_stop_codon">Yes</label>
+              <input
+                type="radio"
+                class="form-control"
+                id="no_stop_codon"
+                name="no_stop_codon"
+                value="Y"
+                checked
+              />
+              <label for="no_stop_codon">No</label>
+              <input
+                type="radio"
+                class="form-control"
+                id="no_stop_codon"
+                name="no_stop_codon"
+                value="N"
+              />
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div>
+            {% if excel_file is not none %}
+            <label for="excel-file">Lymphotrack Excel File: &nbsp;&nbsp;&nbsp;&nbsp;</label>
+              <input type="hidden" name="excel-file" id="excel-file" value="{{ excel_file }}" />
+              <a href={{ url_for('main_bp.download_excel', id=_id) }}>{{ excel_name }}</a>
+              <input type="hidden" name="excel_file_upload" id="excel_file_upload" value="False" />
+            {% else %}
+            <label style="display: flex; align-items: center;" for="excel-file">
+              Upload Lymphotrack Excel File:&nbsp;&nbsp;&nbsp;
+              <img height=30 src="{{ url_for('static', filename='icons/upload.gif') }}">
+            </label>
+            <input type="file" name="excel-file" id="excel-file" accept=".xlsm, .xlsx, .xls" required onchange="displaySelectedFile(this)" style="display: none;" />
+            <input type="hidden" name="excel_file_upload" id="excel_file_upload" value="True" />
+            <span id="selected-file"></span>
+            {% endif %}
+          </div>
+        </td>
+        <td style="width: 33%">
+          <input type="hidden" name="_id" id="_id" value=sample._id/>
+          <center><button type="submit">Get Sequences</button></center>
+        </td>
+        <td style="width: 33%">
+          <center><button type="reset" value="Clear the form">Reset</button></center>
+        </td>
+      </tr>
+    </table>
+  </div>
+</form>
+
+{% if html_table is not none %}
+<div id="filtered_data">
+  <h3 class="pane-title">
+    <span
+      class="pane-icon"
+      data-toggle="collapse"
+      data-target="filtered_data"
+    ></span>
+    <center>
+      <span class="pane-title"
+        >Filtered sequences from the uploaded Lymphotrack excel file for the SampleID: <i>{{ sample_id }}</i></span
+      >
+    </center>
+  </h3>
+</div>
+{% endif %}
+<br />
+{% if html_table is not none %}
+<form
+  name={{ vquest_action }}
+  method="POST"
+  enctype="multipart/form-data"
+  action={{ url_for('main_bp.' ~ vquest_action, sample_id=sample_id, _id=_id) }}
+  id={{ vquest_action }}
+  onsubmit="return validateForm('{{ vquest_action }}');"
+>
+  <div class="form-group">
+    <div class="df-table-class">{{ html_table|safe }}</div>
+  </div>
+  <br /><br />
+
+  {% endif %} <br />
+  {% if filter_message is none and html_table is not none %}
+  <center>
+    <button type="submit">Proceed to IMGT V-Quest Configuration</button>
+  </center>
+  <br /><br />
+
+  {% elif filter_message is not none and filter_message != 'no' and html_table
+  is not none%}
+  <div>
+    <center>
+      <p><b>{{ filter_message|safe }}</b></p>
+      <br /><br />
+      <button type="submit">Proceed to CLL Report Generation</button>
+    </center>
+  </div>
+  <br /><br /><br />
+  {% endif %}
+</form>
+{% endblock %}

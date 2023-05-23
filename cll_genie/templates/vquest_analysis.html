@@ -1,0 +1,292 @@
+{% extends "base.html" %} {% block title %}IMGT Analysis{% endblock %} {% block
+scripts %}
+<script src="{{ url_for('static', filename='js/vquest_updateLocus.js') }}"></script>
+{% endblock %} {% block body %}
+<center>
+  <h3>
+    T cell receptor (TR) nucleotide sequences Analysis from human and other
+    vertebrate species, powered by
+    <a href="https://www.imgt.org/IMGT_vquest" target="_blank">IMGT V-Quest</a>
+  </h3>
+</center>
+<form id ="vquest_form" name="vquest_form" method="POST" enctype="multipart/form-data" action={{ url_for('main_bp.vquest_results', sample_id=sample_id, _id=_id) }}>
+  <div class="table">
+    <table style="width: 100%; align-content: center;">
+      <tr>
+        <th colspan="2" style="text-align: center" >Your Selection</th>
+      </tr>
+      <tr>
+        <td width="50%" style="text-align: center; font-size: 12pt;" >
+          <b>Sample ID: </b>
+        </td><td style="text-align: center; font-size: 12pt;"> 
+          <i>{{ sample_id }}</i>
+        </td></tr>
+      <tr>
+        <td width = "50%">
+          <label for="species">&emsp;&emsp;&emsp;&emsp;Species:&emsp;&emsp;&emsp;</label>
+          <select id="species" name="species" onchange="updateLocus()" required>
+            <option value="" disabled selected>Select a species</option>
+            <option value="human">Homo sapiens (human)</option>
+            <option value="mouse">Mus musculus (house mouse)</option>
+            <option value="mas-night-monkey">
+              Aotus nancymaae (Ma's night monkey)
+            </option>
+            <option value="bovine">Bos taurus (bovine)</option>
+            <option value="camel">Camelus dromedarius (Arabian camel)</option>
+            <option value="dog">Canis lupus familiaris (dog)</option>
+            <option value="goat">Capra hircus (goat)</option>
+            <option value="chondrichthyes">Chondrichthyes</option>
+            <option value="zebrafish">Danio rerio (zebrafish)</option>
+            <option value="horse">Equus caballus (horse)</option>
+            <option value="cat">Felis catus (domestic cat)</option>
+            <option value="cod">Gadus morhua (Atlantic cod)</option>
+            <option value="chicken">Gallus gallus (chicken)</option>
+            <option value="gorilla">
+              Gorilla gorilla gorilla (western lowland gorilla)
+            </option>
+            <option value="naked-mole-rat">
+              Heterocephalus glaber (naked mole-rat)
+            </option>
+            <option value="catfish">
+              Ictalurus punctatus (Channel catfish)
+            </option>
+            <option value="lemur">Lemur catta (Ring-tailed lemur)</option>
+            <option value="crab-eating-macaque">
+              Macaca fascicularis (crab-eating macaque)
+            </option>
+            <option value="rhesus-monkey">
+              Macaca mulatta (Rhesus monkey)
+            </option>
+            <option value="ferret">Mustela putorius furo (ferret)</option>
+            <option value="nonhuman-primates">Nonhuman Primates</option>
+            <option value="platypus">
+              Ornithorhynchus anatinus (platypus)
+            </option>
+            <option value="rabbit">Oryctolagus cuniculus (rabbit)</option>
+            <option value="sheep">Ovis aries (sheep)</option>
+            <option value="pongo">Pongo abelii (Sumatran orangutan)</option>
+            <option value="rat">Rattus norvegicus (Norway rat)</option>
+            <option value="salmon">Salmo salar (Atlantic salmon)</option>
+            <option value="pig">Sus scrofa (pig)</option>
+            <option value="teleostei">Teleostei</option>
+            <option value="dolphin">
+              Tursiops truncatus (Bottlenose dolphin)
+            </option>
+            <option value="alpaca">Vicugna pacos (alpaca)</option>
+          </select>
+        </td>
+        <td>
+          <label for="receptorOrLocusType">&emsp;&emsp;&emsp;&emsp;Receptor type or locus:&emsp;&emsp;&emsp;</label>
+          <select id="receptorOrLocusType" name="receptorOrLocusType" required>
+            <option value="" disabled selected>Select a species first</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" align = "center">
+          <label>
+            Nucleotide sequence(s) in FASTA or in
+            FASTQ format (auto populated)
+          </label>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+        <br></br>
+          <textarea
+            name="sequences"
+            style="resize: auto; width: 100%; height: 80%;"
+            id="sequences"
+            readonly
+          >{{ seqs }}</textarea>
+          <br></br>
+        </td>
+      </tr>
+    </table><br>
+    <table style="width: 100%; align-content: center;">
+      <tr>
+        <th colspan="2" style="text-align: center" >Select to download results</th>
+      </tr><tr>
+        <td width = "50%">
+          <input type="checkbox" id="xv_summary" name="xv_summary" value=True checked disabled>
+          <input type="hidden" id="xv_summary" name="xv_summary" value=True>
+          <label for="xv_summary">Summary</label>
+        </td><td>
+          <input type="checkbox" id="xv_IMGTgappedNt" name="xv_IMGTgappedNt" value=True checked='checked'>
+          <label for="xv_IMGTgappedNt">IMGT-gapped-nt-sequences</label>
+        </td>
+      </tr><tr>
+        <td>
+          <input type="checkbox" id="xv_ntseq" name="xv_ntseq" value=True checked>
+          <label for="xv_ntseq">nt-sequences</label>
+        </td><td>
+          <input type="checkbox" id="xv_IMGTgappedAA" name="xv_IMGTgappedAA" value=True checked>
+          <label for="xv_IMGTgappedAA">IMGT-gapped-AA-sequences</label>
+        </td>
+      </tr><tr>
+        <td>
+          <input type="checkbox" id="xv_AAseq" name="xv_AAseq" value=True checked>
+          <label for="xv_AAseq">AA-sequences</label>
+        </td><td>
+          <input type="checkbox" id="xv_JUNCTION" name="xv_JUNCTION" value=True checked disabled>
+          <input type="hidden" id="xv_JUNCTION" name="xv_JUNCTION" value=True>
+          <label for="xv_JUNCTION">Junction</label>
+        </td>
+      </tr><tr>
+        <td>
+          <input type="checkbox" id="xv_V_REGIONmuttable" name="xv_V_REGIONmuttable" value=True checked>
+          <label for="xv_V_REGIONmuttable">V-REGION-mutation-and-AA-change-table</label>
+        </td><td>
+          <input type="checkbox" id="xv_V_REGIONmutstatsNt" name="xv_V_REGIONmutstatsNt" value=True checked>
+          <label for="xv_V_REGIONmutstatsNt">V-REGION-nt-mutation-statistics</label>
+        </td>
+      </tr><tr>
+        <td>
+          <input type="checkbox" id="xv_V_REGIONmutstatsAA" name="xv_V_REGIONmutstatsAA" value=True checked>
+          <label for="xv_V_REGIONmutstatsAA">xv_V_REGIONmutstatsAA</label>
+        </td><td>
+          <input type="checkbox" id="xv_V_REGIONhotspots" name="xv_V_REGIONhotspots" value=True checked>
+          <label for="xv_V_REGIONhotspots">V-REGION-mutation-hotspots</label>
+        </td>
+      </tr><tr>
+        <td>
+          <input type="checkbox" id="xv_parameters" name="xv_parameters" value=True checked disabled>
+          <input type="hidden" id="xv_parameters" name="xv_parameters" value=True>
+          <label for="xv_parameters">Parameters</label>
+        </td><td>
+          <input type="checkbox" id="xv_scFv" name="xv_scFv" value=True>
+          <input type="hidden" id="xv_scFv" name="xv_scFv" value=False checked>
+          <label for="xv_scFv">scFv (only for option "Analysis of single chain Fragment variable (scFv)")</label>
+        </td></tr>
+    </table><br>
+    <table style="width: 100%; align-content: center;">
+      <tr>
+        <th colspan="2" style="text-align: center" >Advanced parameters</th>
+      </tr><tr>
+        <td width = "50%">
+          <label for="IMGTrefdirSet">IMGT reference directory set</label>
+          <select id="IMGTrefdirSet" name="IMGTrefdirSet">
+            <option value="0">F+ORF</option>
+            <option value="1" selected>F+ORF+ in-frame P</option>
+            <option value="2">F+ORF including orphons</option>
+            <option value="3">F+ORF+ in-frame P including orphons</option>
+          </select>
+        </td><td>
+          <label for="IMGTrefdirAlleles">IMGT reference directory set alleles</label>
+          <select id="IMGTrefdirAlleles" name="IMGTrefdirAlleles">
+            <option value=True selected>with all alleles</option>
+            <option value=Flase>with allele *01 only</option>
+          </select>
+        </td>
+      </tr><tr>
+        <td>
+          <label for="V_REGIONsearchIndel">Search for insertions and deletions in V-REGION&emsp;&emsp;&emsp;&emsp;&emsp;</label>
+        </td><td>
+          <label for="V_REGIONsearchIndel">Yes</label>
+          <input type="radio" class="form-control" id="V_REGIONsearchIndel" name="V_REGIONsearchIndel" value=True checked/>
+          <label for="V_REGIONsearchIndel">&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;No</label>
+          <input type="radio" class="form-control" id="V_REGIONsearchIndel" name="V_REGIONsearchIndel" value=False/>
+        </td></tr>
+        <tr><td colspan=2 align="center">
+          <label for="nbD_GENE">Parameters for IMGT/JunctionAnalysis: </label>
+        </td></tr>
+        <tr><td>
+          <label for="nbD_GENE">number of accepted D-GENE in <br>IGH or TRB (default is 1)<br>TRD (default is 3) JUNCTION</label>
+        </td><td>
+          <select id="nbD_GENE" name="nbD_GENE">
+            <option value="-1" selected>default</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </td></tr>
+        <tr><td>
+          <label for="nbVmut">number of accepted mutations in 3'V-REGION:&emsp;&emsp;&emsp;</label>
+        </td><td>
+          <select id="nbVmut" name="nbVmut">
+            <option value="-1" selected>default</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </td></tr>
+        <tr><td>
+          <label for="nbDmut">number of accepted mutations in D-REGION:&emsp;&emsp;&emsp;</label>
+        </td><td>
+          <select id="nbDmut" name="nbDmut">
+            <option value="-1" selected>default</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </td></tr>
+        <tr><td>
+          <label for="nbJmut">number of accepted mutations in 5'J-REGION:&emsp;&emsp;&emsp;</label>
+        </td><td>
+          <select id="nbJmut" name="nbJmut" required>
+            <option value="-1">default</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </td></tr>
+    </table><br>
+    <table style="width: 100%; align-content: center;">
+      <tr>
+        <th colspan="2" style="text-align: center" >Advanced functionalities</th>
+      </tr><tr>
+        <td width = "50%">
+          <label for="scfv">Analysis of single chain Fragment variable (scFv)&emsp;&emsp;&emsp;&emsp;&emsp;</label>
+        </td><td>
+          <label for="scfv">Yes</label>
+          <input type="radio" class="form-control" id="scfv" name="scfv" value=True/>
+          <label for="scfv">&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;No</label>
+          <input type="radio" class="form-control" id="scfv" name="scfv" value=False checked/>
+        </td></tr>
+      <tr><td>
+        <label for="cllSubsetSearch">Clinical application: search for CLL subsets #2 and #8&emsp;&emsp;&emsp;&emsp;&emsp;</label>
+      </td><td>
+        <label for="cllSubsetSearch">Yes</label>
+        <input type="radio" class="form-control" id="cllSubsetSearch" name="cllSubsetSearch" value=True checked/>
+        <label for="cllSubsetSearch">&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;No</label>
+        <input type="radio" class="form-control" id="cllSubsetSearch" name="cllSubsetSearch" value=False/>
+      </td></tr>
+    </table><br><br><br>
+    <!-- Hidden parameters that are always there by default -->
+    <input type="hidden" id="inputType" name="inputType" value="inline"/>
+    <input type="hidden" id="outputType" name="outputType" value="html"/>
+    <input type="hidden" id="resultType" name="resultType" value="excel"/>
+    <input type="hidden" id="xv_outputtype" name="xv_outputtype" value="1"/>
+    <input type="hidden" id="nb5V_REGIONignoredNt" name="nb5V_REGIONignoredNt" value="0"/>
+    <input type="hidden" id="nb3V_REGIONaddedNt" name="nb3V_REGIONaddedNt" value="0"/>
+    <input type="hidden" id="fileSequences" name="fileSequences" value="None"/>
+    <input type="hidden" id="selected_seqs_merging_rate" name="selected_seqs_merging_rate" value={{ selected_sequence_stats }}/>
+    <center><button type="submit" onclick="getValue()"><p style="font-size: 12pt"><b>Submit to IMGT Server</b></p></button></center>
+  </div>
+</form>
+{% endblock %}
