@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CLL GENIE{% endblock %}</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/cll_style.css') }}">
+    <script src="{{ url_for('static', filename='js/sorttable.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</head>
+<body>
+
+    <script type=text/javascript>
+      $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script> 
+    <div id='pageheader'>
+        <div class='logo'>
+            <span class="logo" style="display: absolute; align-items: center;"><img class="rotate-90" height=50 src="{{ url_for('static', filename='icons/dna-flatart-96.png') }}">
+                <a href="{{ url_for('main_bp.cll_genie') }}">CLL GENIE</a>
+                <!-- <img height=50 src="{{ url_for('static', filename='images/dungeon_antibody.png') }}"> -->
+                <img height=50 src="{{ url_for('static', filename='icons/antibody-sheild-96.png') }}">
+            <p style='font-size:9pt; color: rgb(223, 120, 73); position:absolute; top:60px; left:100px; text-shadow: 4px 4px 15px #000;'><b>CHRONIC LYMPHOCYTIC LEUKEMIA, Powered by IMGT</b></p></span>
+            <div id='login'>
+                {% if current_user.is_authenticated %}
+                    <span style="display: flex; align-items: center;" class="logged-in"><img height=50 src="{{ url_for('static', filename='icons/user-512.png') }}">&nbsp;&nbsp;{{ current_user.get_fullname() }}
+                    <a class="logout-link" href="{{ url_for('login_bp.logout') }}"><img height=30 src="{{ url_for('static', filename='icons/logout-96.png') }}"></a>
+                  </span>
+                {% else %}
+                  <span style="display: flex; align-items: center;" class="login-link">
+                    <a href="{{ url_for('login_bp.login') }}"><img height=40 src="{{ url_for('static', filename='icons/login-96.png') }}"></a>
+                  </span>
+                {% endif %}
+              </div>
+        </div>
+    </div>
+    <div class="floating-button">
+        <span><b>Version: {{config['APP_VERSION']}}</b></span>
+      </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="flash-message alert-{{ category }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+    
+    <div class="page">
+        {% block body %}{% endblock %}
+    </div>
+    
+</body>
+</html>

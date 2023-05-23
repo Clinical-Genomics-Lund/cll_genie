@@ -1,0 +1,16 @@
+{% extends "base.html" %} {% block title %}CLL Errors{% endblock %} 
+{% block body %}
+
+
+<h3>There were some problems with the analysis for the sample <i>{{ sample_id }}</i></h3><br>
+
+<div class="errors">
+    {% for error in errors %}
+        {{ error }} <br><br>
+    {% endfor %}
+</div>
+<hr>
+<br>
+<center><h2><a href={{ url_for('main_bp.cll_genie')}}>Return to Home Page</a></h2></center>
+
+{% endblock %}

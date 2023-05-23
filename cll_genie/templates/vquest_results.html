@@ -1,0 +1,151 @@
+{% extends "base.html" %} {% block title %}CLL Results{% endblock %} 
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/disable_refresh_back_nav.js') }}"></script>
+{% endblock %}
+{% block body %}
+<div id="report">
+  <center>
+    <h2>Chronic Lymphocytic Leukemia (CLL) Analysis Results</h2>
+    <br />
+  </center>
+  <div id="parameters">
+    <table class="report_table" border='1'>
+      <thead>
+        <tr>
+          <th colspan="2">Sample & Database Information</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td width='50%'><b>Sample ID</b></td>
+          <td><i>{{ sample_id }}</i></td>
+        </tr>
+        {% if report_with_vquest %}
+          {% for parameter_key, parameter_value in results_parameters.items() %}
+          <tr>
+            <td><b>{{ parameter_key }}</b></td>
+            <td><i>{{ parameter_value }}</i></td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <td><b>Submission ID</b></td>
+            <td><i>{{ submission_id }}</i></td>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <div id='summary_text'>
+    <br /><hr>
+    <center><h2>IMGT/V-QUEST Results Summary</h2></center>
+    <br />
+    {% if report_with_vquest %}
+      {% for seq_id, seq_value in results_summary.items() %}
+        <p><b>&ensp;&ensp;Summary for the sequence&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_id }}</i></p>
+        <p><b>&ensp;&ensp;Analysed sequence length&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp;: &ensp;&ensp;</b> <i>{{ seq_value['Analysed sequence length']}}</i></p>
+        <p><b>&ensp;&ensp;Sequence analysis category&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp;: &ensp;&ensp;</b> <i>{{ seq_value['Sequence analysis category']}}</i>
+        <p><b>&ensp;&ensp;Sequence Merging Count&ensp;&ensp;&nbsp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_value['Merge Count']}}</i>
+        <p><b>&ensp;&ensp;Sequence Merging Percentage&ensp;&ensp;&nbsp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_value['Total Reads Per']}} %</i>
+        </p></br />
+        <div id='summary_table'>
+          <table class="report_table" border='1'>
+            <thead>
+              <tr>
+                <th colspan="4">Summary table for Sequence Id: <i>{{ seq_id }}</i></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Sequence:</b> {{ seq_id }}</td>
+                {% if seq_value['V-REGION identity % (with ins/del events)'] is not none %}
+                  <td colspan="3">{{ seq_value['Indels if Any'] }}.<br>Indels that are detected are given below,<br>
+                    {% if seq_value['V-REGION insertions'] is not none %}
+                    <i>{{ seq_value['V-REGION insertions'] }}</i>
+                    {% endif %}
+                    {% if seq_value['V-REGION deletions'] is not none %}
+                    <br>
+                    <i>{{ seq_value['V-REGION deletions'] }}</i>
+                    {% endif %}
+                  </td></tr><tr>
+                    <td colspan='4' style="text-align: center"><b>V-Domain Functionality After Removal of Indels:</b><br>{{ seq_value['V-DOMAIN Functionality'] }}<br><b>Comment:</b> {{ seq_value['V-DOMAIN Functionality comment'] }}</td>
+                {% elif seq_value['V-REGION identity % (with ins/del events)'] is none %}
+                  <td colspan="3"><b>V-Domain Functionality:&ensp;&ensp;&ensp;</b>{{ seq_value['V-DOMAIN Functionality'] }}</td>
+                {% endif %}
+              </tr><tr>
+                <td><b>V-GENE and allele</b></td>
+                <td>{{ seq_value['V-GENE and allele'] }}</td>
+                <td><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
+                {% if seq_value['V-REGION identity % (with ins/del events)'] is not none %}
+                  <td><b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{ seq_value['V-REGION identity % (with ins/del events)'] }}% ({{ seq_value['V-REGION identity nt (with ins/del events)'] }})]</td>
+                {% elif seq_value['V-REGION identity % (with ins/del events)'] is none %}
+                  <td><b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})</td>
+                {% endif %}
+              </tr><tr>
+                <td><b>J-GENE and allele</b></td>
+                <td>{{ seq_value['J-GENE and allele'] }}</td>
+                <td><b>Score:</b> {{ seq_value['J-REGION score'] }}</td>
+                <td><b>Identity:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})</td>
+              </tr><tr>
+                <td><b>D-GENE and allele by IMGT/JunctionAnalysis</b></td>
+                <td>{{ seq_value['D-GENE and allele'] }}</td>
+                <td colspan='2'><b>D-REGION</b> is in reading frame {{ seq_value['D-REGION reading frame'] }}</td>
+              </tr><tr>
+                <td><b>FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</b></td>
+                <td>{{ seq_value['FR-IMGT lengths'] }}</td>
+                <td>[{{ seq_value['CDR-IMGT lengths'] }}]</td>
+                <td><b>Identity:</b> {{ seq_value['AA JUNCTION'] }}</td>
+              </tr><tr>
+                <td><b>JUNCTION length (in nt) and decryption</b></td>
+                <td>{{ seq_value['JUNCTION-nt nb'] }} nt = {{ seq_value['JUNCTION decryption'] }}</td>
+                <td colspan="2"><a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank " >(3'V)3'{N1}5'(D)3'{N2}5'(5'J)</a></td>
+              </tr>
+            </tbody>
+          </table><br />
+        </div>
+        <h3>&ensp;&ensp;CLL Subset Results</h3>
+        <p>&ensp;&ensp;{{ seq_value['CLL Subset Summary'] }}</p>
+        <br /> 
+        {% endfor %}
+      {% else %}
+      <p style="color: red; text-align:justify">&ensp;&ensp;After the initial filtration process, no potential merged sequences remained. Due to this, the data was not submitted to the IMGT server, resulting in the absence of any Vquest results.</p><br>
+      {% endif %} 
+      <h3>&ensp;&ensp;Analysis Summary</h3>
+      <p style="text-align:justify">{{ report_summary|replace('\n', '<br>')|safe }}</p>
+      <br />   
+      <hr> 
+  </div>
+</div>
+
+<div>
+  <form method="POST" action="{{ url_for('main_bp.cll_report', sample_id=sample_id, submission_id=submission_id, pdf=1, _id=_id) }}" enctype="multipart/form-data" id="cll_report" name="cll_report">  
+    <input type="hidden" name="sample_id" value="{{ sample_id }}">
+    <input type="hidden" name="_id" value="{{ _id }}">
+    <label for="report_summary">Summary</label><br>
+    <textarea style="resize: vertical; width: 100%; height: 200px; white-space: pre-line; text-align:justify" name="report_summary" rows="50">{{ report_summary }}</textarea><br><br>
+    <table>
+      <tr>
+        <td width="50%" align="center">
+          <button type="submit" name="preview" ><p style="font-size: 10pt"><b>Create PDF Preview</b></p>
+          </button>
+        </td>
+        <td width="50%" align="center">
+          <button type="submit" name="finalize" onclick="showConfirmationDialog()"><p style="font-size: 10pt"><b>Finalize PDF Report</b></p>
+          </button>
+        </td>
+      </tr>
+    </table>
+  </form>
+</div>
+
+
+<script>
+  function showConfirmationDialog() {
+    if (confirm('Is QC ok for {{sample_id}}?')) {
+      // If the user confirms, submit the form
+      document.getElementById('finalise').submit();
+    } else {
+      // If the user cancels, do nothing
+    }
+  }
+</script>
+
+{% endblock %}

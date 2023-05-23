@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}CLL Home{% endblock %}
+{% block body %}
+<h3>Showing all samples</h3>
+<form action="#" class="{{ url_for('main_bp.cll_genie') }}">
+  <div style="display: flex; align-items: center; width:53%" id="search"><b>Search: </b><img height=35 src="{{ url_for('static', filename='icons/search-200.png') }}"><input type="text" id="search" name="search" value="{{search}}"></div>
+</form>
+<span style="display: flex; align-items: center;">Showing {{n_skip+1}}-{{[n_skip+page_size, sample_false_count ]|list_min}} of {{ sample_false_count}} samples &nbsp;&nbsp;&nbsp;
+{% if n_skip > 0 %}<a class="nav" href="?skip={{n_skip-page_size}}&search={{search}}"><img class="nav rotate-180" height=40 src="{{ url_for('static', filename='icons/next.gif') }}"></a> &nbsp;&nbsp;&nbsp;&nbsp;{% endif %}
+{% if n_skip+page_size <= sample_false_count  %}<a class="nav" href="?skip={{n_skip+page_size}}&search={{search}}"><img class=nav height=40 src="{{ url_for('static', filename='icons/next.gif') }}"></a>{% endif %}</span><br>
+<div>
+  <table class="sortable" style="width:55%">
+    <colgroup>
+      <col class="date_added" />
+      <col class="sample_name" />
+      <col class="clarity_id" />
+      <col class="assay" />
+      <col class="get_sequences" />
+      <col class="lymphotrack_qc" />
+      <col class="vquest" />
+      <col class="view_report" />
+      <col class="export_report" />
+    </colgroup>
+    <thead>
+  <tr>
+    <th>Date</th>
+    <th>Sample ID</th>
+    <th>Clarity ID</th>
+    <th>Data Availability</th>
+    <th>Analysis</th>
+    <th>Results</th>
+  </tr>
+    </thead>
+    <tbody>
+  {% for sample in samples_false %}
+  {% set duplicated_sample_id = sample.samples_with_same_sample_id is not none %}
+    <tr>
+      <td>{{sample.date_added.strftime('%Y-%m-%d') }}</td>
+      <td{% if duplicated_sample_id %} class="duplicates_exist"{% endif %}>
+        <a href="{{ url_for('main_bp.sample', sample_id = sample.name, _id=sample._id) }}">{{sample.name}}</a>       
+        {# Sub-table with duplicated samples: #}
+        {% if duplicated_sample_id %}
+        <span class="sample_id_warning_label">
+          ⚠️
+        </span>
+        <div class="duplicated_sample_warning_wrapper">
+          <span class="duplicated_sample_warning_text">WARNING: One or more samples share the same Sample ID.</span>
+          <div class="duplicated_sample_list">
+            <table>
+              <tr>
+                <th>Date</th>
+                <th>Sample ID</th>
+                <th>Clarity ID</th>
+                <th>Assay</th>
+              </tr>
+              {% for row in sample.samples_with_same_sample_id  if row.date_added != sample.date_added%}
+              <tr>
+                <td>{{row.date_added}}</td>
+                <td>{{row.name}}</td>
+                <td>{{row.clarity_id}}</td>
+                <td>{{row.assay}}</td>
+              </tr>
+              {% endfor %}
+            </table>
+          </div>
+        </div>
+        {% endif %}
+      </td>
+      <td>{{sample.clarity_id}}</td>
+      <td>
+        {% if sample.lymphotrack_excel and sample.lymphotrack_qc %}
+        <img height=20  src="{{ url_for('static', filename='icons/excel-96.png') }}">, &nbsp;&nbsp;&nbsp;&nbsp;<img height=25  src="{{ url_for('static', filename='icons/text-96.png') }}">
+        {% elif sample.lymphotrack_excel and not sample.lyphotrack_qc   %}
+        <img height=20  src="{{ url_for('static', filename='icons/excel-96.png') }}">
+        {% elif not sample.lymphotrack_excel and sample.lyphotrack_qc   %}
+        <img height=20  src="{{ url_for('static', filename='icons/text-96.png') }}">
+        {% elif not sample.lymphotrack_excel and not sample.lyphotrack_qc   %}
+        <img height=20  src="{{ url_for('static', filename='icons/unavailable-color-96.png') }}">
+        {% endif %}
+      </td>
+      <td>
+        {% if sample.vquest %}
+        Completed
+        {% else %}
+        <a href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id) }}" >Run Analysis</a>
+        {% endif %}
+      </td>
+      <td>
+        <a style="display: flex; align-items: center;" href="{{ url_for('main_bp.cll_report', sample_id = sample.name, _id=sample._id) }}">View &nbsp;<img height=20 src="{{ url_for('static', filename='icons/view-96.png') }}"></a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+<div class="boxed"> 
+  Finished samples<br><br>
+</div><div>
+<table class="sortable" style="width:55%">
+    <tr>
+      <th>Date</th>
+      <th>Sample ID</th>
+      <th>Clarity ID</th>
+      <th>Analysis</th>
+      <th>View Report</th>
+      <th>Report Status</th>
+      </tr>
+      {% for sample in samples_true %}
+      <tr>
+        <td>{{sample.date_added.strftime('%Y-%m-%d')}}</td>
+        <td><a href="{{ url_for('main_bp.sample', sample_id = sample.name, _id=sample._id) }}">{{sample.name}}</a></td>
+        <td>{{sample.clarity_id}}</td>
+        <td>        
+          {% if sample.vquest %}
+          <a style="display: flex; align-items: center;"  href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}" > Re-Run &nbsp;<img height=20 src="{{ url_for('static', filename='icons/restart-96.png') }}"></a>
+          {% else %}
+          <a href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}?" >Not Available - Re Analyse</a>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('main_bp.report_view', sample_id = sample.name, _id=sample._id) }}", target="_blank"><img height=25 src="{{ url_for('static', filename='icons/pdf-file-96.png') }}"></a>
+        </td>
+        <td>
+          <a href="{{url_for('main_bp.toggle_report_status',db_id=sample._id)}}?set_analyzed=false">
+            Mark as not analyzed
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endblock %} 

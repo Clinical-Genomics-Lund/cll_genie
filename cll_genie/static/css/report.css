@@ -1,0 +1,386 @@
+@page {
+    @top-left {
+        background-image: url('../images/RSKlogo-rgb.png');
+        /*background-image: url(var(--logo));*/
+        background-repeat: no-repeat;
+        background-position: left center;
+        background-size: contain;
+        content: "";
+        opacity: 0.7;
+        height: 50px;
+        width: 30%;
+        display: inline-block;
+        padding-bottom: 10px;
+        border-bottom: 1px solid black;
+        border-bottom-width: 1px;
+        border-bottom-style: solid;
+        border-bottom-color: black;
+        image-rendering: smooth;
+
+    }
+
+    @top-right {
+        content: "Sida " counter(page) " of " counter(pages);
+        font-size: 10px;
+        text-align: right;
+        height: 50px;
+        width: 70%;
+        display: inline-block;
+        padding-top: 35px;
+        padding-bottom: 10px;
+        vertical-align: bottom;
+        border-bottom: 1px solid black;
+        border-bottom-width: 1px;
+        border-bottom-style: solid;
+        border-bottom-color: black;
+    }
+
+    @top-center {
+        content: element(pdfheader);
+    }
+
+    @bottom-center {
+        font-size: 11px;
+        font-family: arial;
+        content: "Copyright © 2023 | Centrum för molekylär diagnostik (CMD) | Region Skåne | Sölvegatan 23B, Lund.";
+        border-top: 1px solid black;
+        border-top-width: 1px;
+        border-top-style: solid;
+        border-top-color: black;
+        width: 100%;
+    }
+
+    @bottom {
+
+        border-top: 1px solid black;
+
+    }
+
+    margin-top: 70px;
+    margin-bottom: 40px;
+    padding-top: 10px;
+
+}
+
+
+#pdfheader {
+    position: running(pdfheader);
+
+}
+
+
+
+body {
+    margin: 2mm 2mm 2mm 2mm;
+    font-size: 11px;
+}
+
+span.neg {
+    color: #0a0;
+    font-weight: bold;
+}
+
+span.pos {
+    color: #f00;
+    font-weight: bold;
+}
+
+
+img.logo {
+    width: 110px;
+    height: auto;
+    position: relative;
+    left: 80%;
+    top: 20px;
+}
+
+.logo-container {
+    position: relative;
+}
+
+span.logo-container {
+    font-size: 20px;
+    font-weight: bold;
+    padding-bottom: 10px;
+    padding-top: 25px;
+    position: absolute;
+    z-index: 0;
+}
+
+.logo-container img {
+    width: 100vh;
+    height: 100vh;
+    opacity: 0.1;
+    position: absolute;
+    transform: scale(1.5);
+    z-index: 1;
+}
+
+.logo-container table {
+    position: absolute;
+    text-align: left;
+    color: rgb(0, 0, 0);
+    transform: translateY(60%);
+    width: 450px;
+    margin-bottom: 20px;
+    background-color: #f3f3ff;
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+    font-size: 12px;
+}
+
+div.results_summary {
+    border: 1px solid #885;
+    padding: 10px;
+    font-size: 14px;
+    background: #ffc;
+    margin-bottom: 15px;
+}
+
+
+table {
+    border-collapse: collapse;
+}
+
+div.page {
+    font-family: arial;
+    margin: 10px;
+    width: 95%;
+    position: relative;
+}
+
+table.report_general {
+    width: 600px;
+    margin-bottom: 20px;
+    background-color: #f3f3ff;
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+    font-size: 10px;
+}
+
+table.report_variant {
+    width: 600px;
+    margin-bottom: 40px;
+    background-color: #fafafa;
+    border: 2px solid #000;
+    font-size: 10px;
+}
+
+table.report_variant td {
+    #border-right
+}
+
+span.report_medium {
+    font-size: 12px;
+}
+
+span.report_text {
+    font-size: 11px;
+}
+
+span.report_text_medium {
+    font-size: 12px;
+    padding-bottom: 3px;
+    padding-top: 3px;
+    text-align: justify;
+    line-height: 1.2
+}
+
+span.report_text_small {
+    font-size: 10px;
+    padding-bottom: 3px;
+    padding-top: 3px;
+    text-align: justify;
+    line-height: 1.0
+}
+
+span.report_header {
+    font-size: 20px;
+    font-weight: bold;
+    padding-bottom: 10px;
+    padding-top: 18px;
+    display: block;
+}
+
+span.report_header_medium {
+    font-size: 16px;
+    font-weight: bold;
+    padding-bottom: 10px;
+    padding-top: 18px;
+    display: block;
+}
+
+th.report_variant_header {
+    border-bottom: 1px solid #000;
+    height: 25px;
+    background-color: #000;
+}
+
+span.report_variant_header {
+    font-size: 14px;
+    font-weight: bold;
+    padding-left: 4px;
+    color: #FFF;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+
+th.top_report {
+    border: 0px;
+    font-weight: normal;
+    text-align: left;
+    border-bottom: 2px solid #000;
+    padding: 6px;
+    font-weight: bold;
+}
+
+th.parameter_report {
+    border: 0px;
+    font-weight: normal;
+    text-align: left;
+    border-bottom: 2px solid #000;
+    padding: 6px;
+    font-weight: bold;
+}
+
+td.report_key {
+    width: 83px;
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    padding: 4px;
+    margin: 0px;
+    font-weight: bold;
+}
+
+
+td.top_report_key {
+    width: 150px;
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    padding: 5px;
+
+    margin: 0px;
+    font-weight: bold;
+}
+
+td.parameter_report_key {
+    width: 320px;
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    padding: 5px;
+    margin: 0px;
+    font-weight: bold;
+}
+
+td.report_val {
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+    width: 105px;
+    padding: 4px;
+}
+
+td.var_report_val {
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+    border-right: 2px solid #000;
+
+    width: 105px;
+    padding: 4px;
+}
+
+td.top_report_val {
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+    padding: 5px;
+}
+
+td.parameter_report_val {
+    background-color: #fff;
+    border-bottom: 1px solid #ccc;
+    padding: 5px;
+}
+
+td.report_comment {
+    background-color: #FFF6DA;
+    padding: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+td.report_annotation {
+    background-color: #FFC;
+    padding: 4px;
+    border: 1px solid #ccc;
+}
+
+li {
+    margin: 4px 0 4px 0;
+}
+
+table.info td {
+    padding: 5px;
+    font-size: 11px;
+    border: 1px solid #aaa;
+}
+
+table.genetable td {
+    padding: 3px 1px;
+    text-align: center;
+    font-size: 8px;
+    border: 1px solid #aaa;
+}
+
+
+div.wrapping {
+    width: 105px;
+    white-space: pre-wrap;
+    /* CSS3 */
+    white-space: -moz-pre-wrap;
+    /* Firefox */
+    white-space: -pre-wrap;
+    /* Opera <7 */
+    white-space: -o-pre-wrap;
+    /* Opera 7 */
+    word-wrap: break-word;
+    /* IE */
+}
+
+div.analysis_description {
+    max-width: 800px;
+    padding: 0px;
+}
+
+div.conclusion {
+    font-size: 14px;
+    max-width: 800px;
+}
+
+table.variant_table {
+    border: 1px solid #aaa;
+    margin: 10px 2px;
+    border-top: 2px solid #000;
+    border-bottom: 2px solid #000;
+}
+
+
+table.variant_table td {
+    border-bottom: 1px solid #aaa;
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+table.variant_table th {
+    border: 1px solid #aaa;
+    border-bottom: 2px solid #000;
+    padding: 5px 12px;
+    font-size: 12px;
+    text-align: left;
+    font-weight: bold;
+    background-color: #f3f3ff;
+}
+
+p {
+
+    font-size: 12;
+}
