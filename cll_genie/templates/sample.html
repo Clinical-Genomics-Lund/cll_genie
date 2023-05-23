@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}CLL Sample{% endblock %}
+{% block body %}
+<div class='table'>
+<h2>Sample Information</h2>
+<table style="width:80%">
+    <tr>
+        <th>Name</th>
+        <th>Info</th>
+    </tr><tr>
+        <td>Sample Name</td>
+        <td>{{ sample.name }}</td>
+    </tr><tr>
+        <td>Clarity Id</td>
+        <td>{{ sample.clarity_id }}</td>
+    </tr><tr>
+        <td>Run Id</td>
+        <td>{{ sample.run_id }}</td>
+    </tr><tr>
+        <td>Sequencer Type</td>
+        <td>{{ sample.sequencer }}</td>
+    </tr><tr>
+        <td>Assay</td>
+        <td>{{ sample.assay }}</td>
+    </tr><tr>
+        <td>LymphoTrack Excel</td>
+        {% if sample.lymphotrack_excel %}
+        <td><a href={{ url_for('main_bp.download_excel', id=sample._id) }}><img height=30 src="{{ url_for('static', filename='icons/excel-96.png') }}"></a></td>
+        {% else %}
+        <td>Not Available, Copy to Server</td>
+        {% endif %}
+    </tr><tr>
+        <td>LymphoTrack QC</td>
+        {% if sample.lymphotrack_qc %}
+        <td>Data Available on the Server</td>
+        {% else %}
+        <td>Not Available, Copy to Server</td>
+        {% endif %}
+    </tr><tr>
+        <td>Total Raw Reads</td>
+        <td>{{ sample.total_raw_reads }}</td>
+    </tr><tr>
+        <td>Total AT Reads</td>
+        <td>{{ sample.total_reads }}</td>
+    </tr><tr>
+        <td>Q30 AT Reads</td>
+        <td>{{ sample.q30_reads }}</td>
+    </tr><tr>
+        <td>Q30 AT Reads Percentage</td>
+        {% if sample.q30_per is not none %}
+            <td style="color: {{ 'red' if sample.q30_per|float < 80.00 else 'black' }}">{{ sample.q30_per }}%</td>
+        {% endif %}
+    </tr><tr>
+        <td>VQuest Analysis</td>
+        <td>        
+            {% if sample.vquest %}
+            <a style="display: flex; align-items: center;" href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}"> Re-Run &nbsp;<img height=20 src="{{ url_for('static', filename='icons/restart-96.png') }}"></a>
+            {% elif not sample.vquest %}
+            <a href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}" >Run Analysis</a>
+            {% endif %}
+        </td>
+    </tr><tr>
+        <td>Analysed</td>
+        <td>
+        {% if sample.report %}
+        Report Created
+        {% elif not sample.report and sample.vquest %}
+        <a href="{{ url_for('main_bp.cll_report', sample_id = sample.name, _id=sample._id) }}">View Results and Create a Report</a>&nbsp;
+        {% elif not sample.report and not sample.vquest %}
+        No reports or analysis are available
+        {% endif %}
+        </td>
+    </tr><tr>
+        <td>Date Added</td>
+        <td>{{ sample.date_added }}</td>
+    </tr>
+</table>
+</div>
+<hr>
+
+<div>
+    <h3>Available Results</h3>
+    {% if results_submissions is not none %}
+    <table style="width:80%; text-align:center">
+        <tr>
+            <th style="text-align:center">Date Created</th>
+            <th style="text-align:center">Submission ID</th>
+            <th style="text-align:center">No. of Seqs Submitted</th>
+            <th style="text-align:center">Download Results Zip</th>
+            <th style="text-align:center">Download Detailed Text</th>
+            <th style="text-align:center">Reports Created</th>
+            <th style="text-align:center">View Results</th>
+            <th style="text-align:center">Delete</th>
+        </tr>
+        {% for sub_id in results_submissions.keys() %}
+        <tr>
+            <td>
+                {{ results_submissions[sub_id].data_added.strftime('%Y-%m-%d') }}
+            </td>
+            <td>
+                <center>{{ sub_id.split('_')[1] }}</center>
+            </td>
+            <td>
+                <center>{{ results_submissions[sub_id]['vquest_results'].keys()|length }} </a></center>
+            </td>
+            <td>
+                <a href="{{ url_for('main_bp.download_results', sub_id=sub_id, filetype='zip', id=sample._id) }}"><img height=25  src="{{ url_for('static', filename='icons/zip-file-96.png') }}"></a>
+            </td>
+            <td>
+                <a href="{{ url_for('main_bp.download_results', sub_id=sub_id, filetype='text', id=sample._id) }}"><img height=25  src="{{ url_for('static', filename='icons/text-96.png') }}"></a>
+            </td>
+            <td>
+                {{ report_counts_per_submission[sub_id.split('_')[1]] or 0 }}
+            </td>
+            <td>
+                <center><a href="{{ url_for('main_bp.cll_report', sample_id=sample.name, submission_id=sub_id.split('_')[1], _id=sample._id) }}"><img height=25 src="{{ url_for('static', filename='icons/view-96.png') }}"></a>
+            </td>
+            <td>
+                <a href="{{ url_for('main_bp.delete_results', id=sample._id, sub_id=sub_id, sample_id=sample.name) }}", onclick="return confirm('Are you sure, you want to delete analysis for the sample: {{sample.name}} and submission id {{ sub_id }}?. This action is permanent!')"><img height=25 src="{{ url_for('static', filename='icons/delete-96.png') }}"></a>
+            </td>
+        </tr>
+        {% endfor %}
+    {% endif %}
+    {% if results_submissions is none  %}
+        <tr>
+            <td colspan='3'>
+                No results available. Please run the analysis.
+            </td>
+        </tr>
+    {% endif %}
+    </table>
+</div>
+
+
+
+<div>
+    <h3>Available Reports</h3>
+    {% if 'cll_reports' in sample %}
+    {% set report_counts = sample.cll_reports.keys()|length %}
+    {% if report_counts > 0 %}
+    <table style="width:80%; text-align:center">
+        <tr>
+            <th style="text-align:center">Date Created</th>
+            <th style="text-align:center">Report ID</th>
+            <th style="text-align:center">Report Created By</th>
+            <th style="text-align:center">Report Summary</th>
+            <th style="text-align:center">View Report</th>
+            <th style="text-align:center">Delete</th>
+        </tr>
+        {% for filename in sample.cll_reports.keys() %}
+        <tr>
+            <td>
+                {{ sample.cll_reports[filename].date_created.strftime('%Y-%m-%d') }}
+            </td>
+            <td>
+                {{ filename }}
+            </td>
+            <td>
+                {{ sample.cll_reports[filename].created_by }}
+            </td>
+            <td style="white-space:inherit; text-align:justify">
+                {{ report_summary[filename]|replace('\n', '<br>')|safe }}
+            </td>
+            <td>
+                <a href="{{ url_for('main_bp.report_view', sample_id=sample.name, report_id=filename, _id=sample._id) }}" target="_blank"><img height=35 src="{{ url_for('static', filename='icons/pdf-file-96.png') }}"></a>
+            </td>
+            <td>
+                <a href="{{ url_for('main_bp.delete_report', sample_id=sample.name, report_id=filename, _id=sample._id) }}", onclick="return confirm('Are you sure, you want to delete report  for the sample: {{sample.name}}?. This action is permanent!')"><img height=35 src="{{ url_for('static', filename='icons/delete-96.png') }}"></a>
+            </td>
+        </tr>
+        {% endfor %}
+    {% endif %}
+    {% endif %}
+    {% if 'cll_reports' not in sample or report_counts < 1 %}
+        <tr>
+            <td colspan='3'>
+                No reports available
+            </td>
+        </tr>
+    {% endif %}
+    </table>
+</div>
+{% endblock %}

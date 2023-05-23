@@ -1,0 +1,73 @@
+# Others folders and files
+data/
+cll_genie/static/js/temp/
+results/
+*log*
+scripts/*.log
+TODO*
+cll_genie/blueprints/models/cll_users.py
+unit_testing.py
+cll_genie/blueprints/models/mongo.py
+docker-compose_copy.yml
+Dockerfile_copy
+
+# Environments
+.env
+.venv
+env/
+venv*
+ENV/
+env.bak/
+
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Emacs/vim backup files:
+*~
+\#*\#
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*/__pycache__/
+
+
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+.nfs0000000008fc1e7c00000024
+
