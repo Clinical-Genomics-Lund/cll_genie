@@ -30,6 +30,7 @@ from cll_genie.extensions import clarity_api
 from urllib.parse import urlencode
 import ast
 import shutil
+from zipfile import BadZipFile
 
 
 @main_bp.route("/")
@@ -106,11 +107,17 @@ def download_results(filetype: str, id: str):
 
     if filetype == "zip":
         attachement_file = os.path.abspath(submission_results["results_zip_file"])
-        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.zip','')}_{submission_id}.zip"
+        attachement_filename_to_download = os.path.join(
+            os.path.basename(attachement_file).replace(".zip", ""),
+            f"_{submission_id}.zip",
+        )
 
     elif filetype == "text":
         attachement_file = os.path.abspath(submission_results["detailed_text_file"])
-        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.txt','')}_{submission_id}.txt"
+        attachement_filename_to_download = os.path.join(
+            os.path.basename(attachement_file).replace(".txt", ""),
+            f"_{submission_id}.txt",
+        )
 
     if os.path.exists(attachement_filename_to_download):
         response = make_response(send_file(attachement_file))
@@ -131,7 +138,7 @@ def download_results(filetype: str, id: str):
         )
 
 
-@main_bp.route("/sample/<string:sample_id>", methods=["GET"])
+@main_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
 @login_required
 def sample(sample_id: str):
     _id = request.args.get("_id")
@@ -196,7 +203,8 @@ def load_qc(sample_id: str, lymphotrack_qc_file: str) -> dict:
             f"Could not load qc data into the database for the sample id: {sample_id}"
         )
         flash(
-            f"Could not load qc data into the database for the sample id: {sample_id}"
+            f"Could not load qc data into the database for the sample id: {sample_id}",
+            "warning",
         )
         return {"totalCount": None, "countQ30": None, "indexQ30": None}
 
@@ -238,6 +246,7 @@ def get_sequences(sample_id: str):
 
             print(f"Temporary directory: {tmpdir}")
             excel_file = f"{tmpdir}/{excel_file_uploaded.filename}"
+            excel_file = os.path.join(tmpdir, excel_file_uploaded.filename)
             excel_file_uploaded.save(excel_file)
         else:
             tmpdir = None
@@ -245,17 +254,31 @@ def get_sequences(sample_id: str):
 
         # Pre processing data from the excel file Create an instance of the ExcelReader class
         if os.path.exists(excel_file):
-            excel_reader = ProcessExcel(
-                excel_file,
-                excel_header_row,
-                excel_sheet_name,
-                filtration_cutoff,
-                no_stop_codon,
-                is_in_frame,
-            )
+            try:
+                excel_reader = ProcessExcel(
+                    excel_file,
+                    excel_header_row,
+                    excel_sheet_name,
+                    filtration_cutoff,
+                    no_stop_codon,
+                    is_in_frame,
+                )
 
-            # Filter the data based on the "% total reads, In-frame (Y/N), No Stop codon (Y/N)" columns
-            filtered_data = excel_reader.filter_data()
+                # Filter the data based on the "% total reads, In-frame (Y/N), No Stop codon (Y/N)" columns
+                filtered_data = excel_reader.filter_data()
+
+            except (pd.errors.ParserError, Exception) as e:
+                cll_app.logger.error(
+                    f"There was an Error while reading the excel file: File is corrupted not in Excel format anymore, {str(e)}"
+                )
+                return render_template(
+                    "errors.html",
+                    errors=[
+                        f"There was an Error while reading the excel file: File is corrupted not in Excel format anymore, {str(e)}"
+                    ],
+                    sample_id=sample_id,
+                    _id=id,
+                )
 
             # remove temp directory
             if tmpdir is not None:
@@ -263,6 +286,7 @@ def get_sequences(sample_id: str):
 
             # Create a html table from the filtered data
             if isinstance(filtered_data, pd.DataFrame):
+                filtered_data.reset_index(drop=True, inplace=True)
                 filtered_data.insert(0, "Select", "")
                 filtered_data_len = len(filtered_data)
 
@@ -272,12 +296,9 @@ def get_sequences(sample_id: str):
                         _id, "is_eligible_for_vquest", True
                     )
                 else:
-                    vquest_action = "cll_report"
+                    vquest_action = "negative_report"
                     SampleListController.sample_handler.update_document(
                         _id, "is_eligible_for_vquest", False
-                    )
-                    SampleListController.sample_handler.update_document(
-                        _id, "vquest", True
                     )
 
                 for i in range(filtered_data_len):
@@ -290,11 +311,11 @@ def get_sequences(sample_id: str):
                 )
 
             else:
-                vquest_action = "cll_report"
+                vquest_action = "negative_report"
                 SampleListController.sample_handler.update_document(
                     _id, "is_eligible_for_vquest", False
                 )
-                SampleListController.sample_handler.update_document(_id, "vquest", True)
+
         else:
             return render_template(
                 "errors.html",
@@ -352,14 +373,13 @@ def vquest_results(sample_id: str):
     sub_num = (
         request.args.get("sub_num") if request.args.get("sub_num") is not None else -1
     )
-    sample = SampleListController.sample_handler.get_sample(_id)
-    report_with_vquest = sample.get("is_eligible_for_vquest", False)
     selected_sequence_stats = None
     submission_id = ResultsController.get_submission_id(_id, num=sub_num)
 
     if request.method == "POST":
         # _id = request.args.get('_id')
         submission_id = ResultsController.get_submission_id(_id, num=None)
+
         vquest_payload = VQuest.process_config(request.form.to_dict())
 
         selected_sequence_stats = vquest_payload["selected_seqs_merging_rate"]
@@ -514,7 +534,8 @@ def cll_report(sample_id: str):
                         _id, "cll_reports", all_report_summaries
                     )
                     flash(
-                        f"Report with id: {report_id} save to the disk and added to the database"
+                        f"Report with id: {report_id} save to the disk and added to the database",
+                        "success",
                     )
                     return redirect(url_for("main_bp.cll_genie"))
                 # Render it!
@@ -539,10 +560,80 @@ def cll_report(sample_id: str):
             )
     else:
         flash(
-            f"Cannot Create report, Vquest results are not available, please run your analysis",
+            f"Cannot create report, Vquest results are not available, please run your analysis",
             "error",
         )
         return redirect(url_for("main_bp.get_sequences", sample_id=sample_id, _id=_id))
+
+
+@main_bp.route("/negative_report/<string:sample_id>", methods=["POST", "GET"])
+@login_required
+def negative_report(sample_id: str):
+    _id = request.args.get("_id")
+    sample = ReportController.sample_handler.get_sample(_id)
+    report_with_vquest = sample.get("is_eligible_for_vquest", False)
+    negative_report_status = ReportController.sample_handler.negative_report_status(_id)
+    pdf_file_path = ReportController.get_pdf_filename(_id, 0, neg=True)
+    pdf_file_name = os.path.basename(pdf_file_path)
+    report_id = pdf_file_name.replace(".pdf", "")
+    report_date = ResultsController.now
+    report_summary = "Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat."
+
+    if not report_with_vquest and not negative_report_status:
+        try:
+            clarity_data = clarity_api.sample_udfs_from_sample_id(sample["clarity_id"])
+            html = render_template(
+                "cll_report_pdf.html",
+                sample_id=sample_id,
+                report_id=report_id,
+                report_with_vquest=report_with_vquest,
+                report_summary=report_summary,
+                report_date=str(report_date).split(" ")[0],
+                clarity_data={} if clarity_data is None else clarity_data,
+            )
+
+            pdf = HTML(string=html).write_pdf()
+            with open(pdf_file_path, "wb") as pdf_out:
+                pdf_out.write(pdf)
+
+            update_neg_report = {
+                "report_id": report_id,
+                "path": pdf_file_path,
+                "date_created": report_date,
+                "created_by": current_user.get_fullname(),
+            }
+
+            ReportController.sample_handler.update_document(
+                _id, "negative_report", update_neg_report
+            )
+            ReportController.sample_handler.update_document(_id, "report", True)
+            flash(
+                f"Report with id: {report_id} save to the disk and added to the database",
+                "success",
+            )
+            return redirect(url_for("main_bp.cll_genie"))
+        except Exception as e:
+            flash(f"Report cannot be created", "error")
+            cll_app.logger.error(f"Report cannot be created due to error: {str(e)}")
+            return render_template(
+                "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
+            )
+    else:
+        flash(f"Report already exits", "info")
+        report_doc = ReportController.sample_handler.get_negative_report(_id)
+        if os.path.exists(report_doc["path"]):
+            head, tail = os.path.split(report_doc["path"])
+            return send_from_directory(head, tail)
+        else:
+            flash(f"Report does not exist in the given path", "info")
+            return render_template(
+                "errors.html",
+                errors=[
+                    f"Report does not exist in the given path: {report_doc['path']}"
+                ],
+                sample_id=sample_id,
+                _id=_id,
+            )
 
 
 @main_bp.route("/report_view/<string:sample_id>")
@@ -570,11 +661,22 @@ def report_view(sample_id: str):
         head, tail = os.path.split(filepath)
         return send_from_directory(head, tail)
     else:
-        flash(
-            f"There are no reports available in the database for the sample {sample_id}. Go to home page and create a report",
-            "danger",
-        )
-        return redirect(url_for("main_bp.cll_genie", sample_id=sample_id))
+        report_docs = ReportController.sample_handler.get_negative_report(_id)
+        if (
+            report_docs is None
+            or report_docs["path"] == ""
+            or not os.path.exists(os.path.abspath(report_docs["path"]))
+        ):
+            flash(
+                f"There are no reports available in the database for the sample {sample_id}. Go to home page and create a report",
+                "error",
+            )
+        else:
+            filepath = os.path.abspath(report_docs["path"])
+            head, tail = os.path.split(filepath)
+            return send_from_directory(head, tail)
+
+        return redirect(url_for("main_bp.cll_genie"))
 
 
 @main_bp.route("/toggle_report_status/<string:db_id>")
@@ -598,8 +700,8 @@ def toggle_report_status(db_id: str):
         "set_analyzed", default=None, type=check_report_status_arg
     )
 
-    cll_app.logger.debug(f"Setting report ({db_id}) to {set_report}")
-    flash(f"Setting report ({db_id}) to {set_report}")
+    cll_app.logger.info(f"Setting report ({db_id}) to {set_report}")
+    flash(f"Setting report ({db_id}) to {set_report}", "info")
 
     if set_report is not None:
         ReportController.sample_handler.update_document(db_id, "report", set_report)
@@ -639,7 +741,55 @@ def delete_report(sample_id: str):
             cll_app.logger.error(
                 f"Report deletion failed for the report id {report_id}"
             )
-            flash(f"Report deleted failed for the report id {report_id}", "danger")
+            flash(f"Report deleted failed for the report id {report_id}", "error")
+    else:
+        cll_app.logger.warning(
+            "The current User is not authorized to modify the data based on the group policy."
+        )
+        flash(
+            "The current User is not authorized to modify the data based on the group policy.",
+            "warning",
+        )
+
+    return redirect(url_for("main_bp.sample", sample_id=sample_id, _id=_id))
+
+
+@main_bp.route("/delete_negative_report/<string:sample_id>")
+@login_required
+def delete_negative_report(sample_id: str):
+    """
+    Delete the negative report and its contents from the samples database
+    """
+    _id = request.args.get("_id")
+    if current_user.super_user_mode():
+        status = ReportController.delete_cll_negative_report(_id)
+        if status:
+            cll_app.logger.info(
+                f"No result report deleted successfully for the sample id {sample_id}"
+            )
+            flash(
+                f"No result report deleted successfully for the sample id {sample_id}",
+                "success",
+            )
+            try:
+                report_counts = len(
+                    SampleListController.sample_handler.get_sample(_id)["cll_reports"]
+                )
+            except:
+                report_counts = 0
+
+            if report_counts < 1:
+                ReportController.sample_handler.update_document(_id, "report", False)
+
+        else:
+            # need more work on this
+            cll_app.logger.error(
+                f"No result report deletion failed for the sample id {sample_id}"
+            )
+            flash(
+                f"No result report deleted failed for the sample id {sample_id}",
+                "error",
+            )
     else:
         cll_app.logger.warning(
             "The current User is not authorized to modify the data based on the group policy."
@@ -695,7 +845,7 @@ def delete_results(id: str, sub_id: str):
             )
             flash(
                 f"Results deletion failed for the sample id {sample_id} of submission id {sub_id}",
-                "danger",
+                "error",
             )
     else:
         cll_app.logger.warning(

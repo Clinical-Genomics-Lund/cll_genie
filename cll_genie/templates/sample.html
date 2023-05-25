@@ -74,6 +74,15 @@
         <td>Date Added</td>
         <td>{{ sample.date_added }}</td>
     </tr>
+    {% if 'negative_report' in sample.keys() and not sample.report %}
+    <tr>
+    <td>Report Status</td>
+    <td>
+        <a href="{{url_for('main_bp.toggle_report_status',db_id=sample._id)}}?set_analyzed=true">
+        Mark as analyzed
+        </a>
+    </td></tr>
+    {% endif %}
 </table>
 </div>
 <hr>
@@ -180,4 +189,49 @@
     {% endif %}
     </table>
 </div>
+
+<div>
+    <h3>No Result or Negative Reports</h3>
+    {% if 'negative_report' in sample %}
+        <table style="width:80%; text-align:center">
+        {% if sample.negative_report.path is not none or sample.negative_report.path != '' %}
+                <tr>
+                    <th style="text-align:center">Date Created</th>
+                    <th style="text-align:center">Report ID</th>
+                    <th style="text-align:center">Report Created By</th>
+                    <th style="text-align:center">Report Summary</th>
+                    <th style="text-align:center">View Report</th>
+                    <th style="text-align:center">Delete</th>
+                </tr>
+                <tr>
+                    <td>
+                        {{ sample.negative_report.date_created.strftime('%Y-%m-%d') }}
+                    </td>
+                    <td>
+                        {{ sample.negative_report.report_id }}
+                    </td>
+                    <td>
+                        {{ sample.negative_report.created_by }}
+                    </td>
+                    <td style="white-space:inherit; text-align:justify">
+                        No Result/Negative
+                    </td>
+                    <td>
+                        <a href="{{ url_for('main_bp.negative_report', sample_id=sample.name, _id=sample._id) }}" target="_blank"><img height=35 src="{{ url_for('static', filename='icons/pdf-file-96.png') }}"></a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('main_bp.delete_negative_report', sample_id=sample.name, _id=sample._id) }}", onclick="return confirm('Are you sure, you want to delete the no result report  for the sample: {{sample.name}}?. This action is permanent!')"><img height=35 src="{{ url_for('static', filename='icons/delete-96.png') }}"></a>
+                    </td>
+                </tr>
+        {% endif %}
+    {% else %}
+        <tr>
+            <td colspan='3'>
+                No reports available
+            </td>
+        </tr>
+    </table>
+    {% endif %}
+</div>
+
 {% endblock %}

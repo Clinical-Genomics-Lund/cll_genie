@@ -39,14 +39,20 @@
     <center><h2>IMGT/V-QUEST Results Summary</h2></center>
     <br />
     {% if report_with_vquest %}
-      {% for seq_id, seq_value in results_summary.items() %}
+      {% set seq_count = 1 %}
+
+
+      {% for seq_id, seq_value in results_summary.items() %} 
+        {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
+        {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
+        {% set seq_name = seq_id.split('_')[0] %}
         <p><b>&ensp;&ensp;Summary for the sequence&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_id }}</i></p>
         <p><b>&ensp;&ensp;Analysed sequence length&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp;: &ensp;&ensp;</b> <i>{{ seq_value['Analysed sequence length']}}</i></p>
         <p><b>&ensp;&ensp;Sequence analysis category&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp;: &ensp;&ensp;</b> <i>{{ seq_value['Sequence analysis category']}}</i>
         <p><b>&ensp;&ensp;Sequence Merging Count&ensp;&ensp;&nbsp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_value['Merge Count']}}</i>
         <p><b>&ensp;&ensp;Sequence Merging Percentage&ensp;&ensp;&nbsp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_value['Total Reads Per']}} %</i>
         </p></br />
-        <div id='summary_table'>
+        <div id='summary_table'>     
           <table class="report_table" border='1'>
             <thead>
               <tr>
@@ -54,56 +60,110 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td><b>Sequence:</b> {{ seq_id }}</td>
-                {% if seq_value['V-REGION identity % (with ins/del events)'] is not none %}
-                  <td colspan="3">{{ seq_value['Indels if Any'] }}.<br>Indels that are detected are given below,<br>
-                    {% if seq_value['V-REGION insertions'] is not none %}
-                    <i>{{ seq_value['V-REGION insertions'] }}</i>
-                    {% endif %}
-                    {% if seq_value['V-REGION deletions'] is not none %}
-                    <br>
-                    <i>{{ seq_value['V-REGION deletions'] }}</i>
-                    {% endif %}
-                  </td></tr><tr>
-                    <td colspan='4' style="text-align: center"><b>V-Domain Functionality After Removal of Indels:</b><br>{{ seq_value['V-DOMAIN Functionality'] }}<br><b>Comment:</b> {{ seq_value['V-DOMAIN Functionality comment'] }}</td>
-                {% elif seq_value['V-REGION identity % (with ins/del events)'] is none %}
-                  <td colspan="3"><b>V-Domain Functionality:&ensp;&ensp;&ensp;</b>{{ seq_value['V-DOMAIN Functionality'] }}</td>
+            <tr>
+              <td colspan="2" width="50%"><b>Sequence Id</b></td>
+              <td colspan="2">
+                <i>{{ seq_name }}</i>
+              </td>
+            </tr>
+            {% if v_indel_identity_per is not none %}
+            <tr>
+              <td><b>Indel Summary</b></td>
+              <td colspan="3" style="background-color: #FFFFE0">
+                {{ seq_value['Indels if Any'] }}.<br />Indels detected are given below,<br />
+                {% if seq_value['V-REGION insertions'] is not none %}
+                <i>{{ seq_value['V-REGION insertions'] }}</i>
+                {% endif %} {% if seq_value['V-REGION deletions'] is not none %}
+                <br />
+                <i>{{ seq_value['V-REGION deletions'] }}</i>
                 {% endif %}
-              </tr><tr>
-                <td><b>V-GENE and allele</b></td>
-                <td>{{ seq_value['V-GENE and allele'] }}</td>
-                <td><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
-                {% if seq_value['V-REGION identity % (with ins/del events)'] is not none %}
-                  <td><b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{ seq_value['V-REGION identity % (with ins/del events)'] }}% ({{ seq_value['V-REGION identity nt (with ins/del events)'] }})]</td>
-                {% elif seq_value['V-REGION identity % (with ins/del events)'] is none %}
-                  <td><b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})</td>
-                {% endif %}
-              </tr><tr>
-                <td><b>J-GENE and allele</b></td>
-                <td>{{ seq_value['J-GENE and allele'] }}</td>
-                <td><b>Score:</b> {{ seq_value['J-REGION score'] }}</td>
-                <td><b>Identity:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})</td>
-              </tr><tr>
-                <td><b>D-GENE and allele by IMGT/JunctionAnalysis</b></td>
-                <td>{{ seq_value['D-GENE and allele'] }}</td>
-                <td colspan='2'><b>D-REGION</b> is in reading frame {{ seq_value['D-REGION reading frame'] }}</td>
-              </tr><tr>
-                <td><b>FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</b></td>
-                <td>{{ seq_value['FR-IMGT lengths'] }}</td>
-                <td>[{{ seq_value['CDR-IMGT lengths'] }}]</td>
-                <td><b>Identity:</b> {{ seq_value['AA JUNCTION'] }}</td>
-              </tr><tr>
-                <td><b>JUNCTION length (in nt) and decryption</b></td>
-                <td>{{ seq_value['JUNCTION-nt nb'] }} nt = {{ seq_value['JUNCTION decryption'] }}</td>
-                <td colspan="2"><a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank " >(3'V)3'{N1}5'(D)3'{N2}5'(5'J)</a></td>
-              </tr>
-            </tbody>
-          </table><br />
+              </td>
+            </tr>
+            <tr>
+              <td><b>V-Domain functionality after removal of Indels</b></td>
+              <td colspan="3" style="text-align: center; background-color: #FFFFE0" >
+                {{ seq_value['V-DOMAIN Functionality'] }}<br />
+              </td>
+            </tr>
+            <tr>
+              <td><b>Comment</b></td>
+              <td colspan="3" style="background-color: #FFFFE0" >
+                {{ seq_value['V-DOMAIN Functionality comment'] }}
+              </td>
+            </tr>
+              {% elif v_indel_identity_per is none %}
+              <tr><td><b>V-Domain functionality</b></td>
+              <td colspan="3" style="background-color: #FFFFE0">
+                {{ seq_value['V-DOMAIN Functionality'] }}
+              </td></tr>
+              {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
+                <tr>
+                  <td><b>Comment</b></td>
+                  <td colspan="3" style="background-color: #FFFFE0">
+                    {{ seq_value['V-DOMAIN Functionality comment'] }}
+                  </td>
+                </tr>
+              {% endif %}
+              {% if seq_value['Indel Messages'] is not none %}
+            <tr>
+              <td><b>Messages</b></td>
+              <td colspan="3" style="background-color: #FFFFE0">
+                {{ seq_value['Indel Messages'] }}
+              </td></tr>
+              {% endif %}
+            {% endif %}
+            </tr>
+            <tr>
+              <td><b>V-Gene and Allele</b></td>
+              <td>{{ seq_value['V-GENE and allele'] }}</td>
+              <td><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
+              {% if v_indel_identity_per is not none %}
+              <td style="background-color: #FFFFE0">
+                <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
+                v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
+              </td>
+              {% elif v_indel_identity_per is none %}
+              <td style="background-color: #FFFFE0">
+                <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
+              </td>
+              {% endif %}
+            </tr>
+            <tr>
+              <td><b>J-Gene and allele</b></td>
+              <td>{{ seq_value['J-GENE and allele'] }}</td>
+              <td><b>Score:</b> {{ seq_value['J-REGION score'] }}</td>
+              <td>
+                <b>Indentiy:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})
+              </td>
+            </tr>
+            <tr>
+              <td><b>D-Gene and allele through IMGT/JunctionAnalysis</b></td>
+              <td>{{ seq_value['D-GENE and allele'] }}</td>
+              <td colspan="2">
+                <b>D-REGION</b> is in reading frame {{ seq_value['D-REGION reading frame'] }}
+              </td>
+            </tr>
+            <tr>
+              <td><b>FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</b></td>
+              <td>{{ seq_value['FR-IMGT lengths'] }}</td>
+              <td>[{{ seq_value['CDR-IMGT lengths'] }}]</td>
+              <td>{{ seq_value['AA JUNCTION'] }}</td>
+            </tr>
+            <tr>
+              <td><b>JUNCTION length (in nt) and decryption<b></td>
+              <td>{{ seq_value['JUNCTION-nt nb'] }} nt = {{ seq_value['JUNCTION decryption'] }}</td>
+              <td colspan="2">
+                <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank ">(3'V)3'{N1}5'(D)3'{N2}5'(5'J)</a>
+              </td>
+            </tr>
+          </tbody>
+         </table><br />
         </div>
         <h3>&ensp;&ensp;CLL Subset Results</h3>
         <p>&ensp;&ensp;{{ seq_value['CLL Subset Summary'] }}</p>
         <br /> 
+        <hr>
+        {% set seq_count = seq_count + 1 %}
         {% endfor %}
       {% else %}
       <p style="color: red; text-align:justify">&ensp;&ensp;After the initial filtration process, no potential merged sequences remained. Due to this, the data was not submitted to the IMGT server, resulting in the absence of any Vquest results.</p><br>
