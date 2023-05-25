@@ -14,6 +14,19 @@ class ReportController:
 
     sample_handler = sample_handler
     results_handler = results_handler
+    swedish_number_string = [
+        "",
+        "ett",
+        "två",
+        "tre",
+        "fyra",
+        "fem",
+        "sex",
+        "sju",
+        "åtta",
+        "nio",
+        "tio",
+    ]
 
     @staticmethod
     def get_parameters_for_report(_id: str, submission_id: str) -> dict | None:
@@ -63,21 +76,25 @@ class ReportController:
             return None
 
     @staticmethod
-    def get_pdf_filename(_id: str, submission_id: str) -> str:
+    def get_pdf_filename(_id: str, submission_id: str, neg=False) -> str:
         """
         Return a pdf filename for a given submission id and create auto report id
         """
         sample_name = ReportController.sample_handler.get_sample_name(_id)
         reports_dir = cll_app.config["REPORT_OUTDIR"]
-        submission_id = submission_id.replace("submission_", "")
         if not os.path.exists(reports_dir):
             os.makedirs(reports_dir)
 
-        report_num = ReportController.results_handler.next_submission_report_id(
-            _id, submission_id
-        )
-        report_id = f"{sample_name}_{submission_id}_{report_num}"
-        return f"{reports_dir}/{report_id}.pdf"
+        if neg:
+            report_id = f"{sample_name}_NO_RESULT"
+            return f"{reports_dir}/{report_id}.pdf"
+        else:
+            submission_id = submission_id.replace("submission_", "")
+            report_num = ReportController.results_handler.next_submission_report_id(
+                _id, submission_id
+            )
+            report_id = f"{sample_name}_{submission_id}_{report_num}"
+            return f"{reports_dir}/{report_id}.pdf"
 
     @staticmethod
     def get_latest_report_summary_text(_id: str, submission_id: str) -> str:
@@ -127,11 +144,8 @@ class ReportController:
                 summary_string += "I aktuellt KLL prov kan ett funktionellt IGH-gen rearrangemang inte identifieras.\nDå vidare analys av somatisk hypermutationsstatus och subset-tillhörighet ej är utförbart hänvisas aktuellt provet för analys vid avd. för Molekylärpatologi, Uppsala Akademiska Sjukhus.\n\n"
             elif number_of_submitted_seqs == 1:
                 summary_string += "I aktuellt KLL prov kan ett funktionellt IGH-gen rearrangemang identifieras.\n\n"
-            elif number_of_submitted_seqs == 2:
-                summary_string += "I aktuellt KLL prov kan två funktionella IGH-gen rearrangemang identifieras.\n\n"
-            elif number_of_submitted_seqs == 3:
-                summary_string += "I aktuellt KLL prov kan tre funktionella IGH-gen rearrangemang identifieras.\n\n"
-
+            elif number_of_submitted_seqs > 1:
+                summary_string += f"I aktuellt KLL prov kan {ReportController.swedish_number_string[number_of_submitted_seqs]} funktionella IGH-gen rearrangemang identifieras.\n\n"
             # Hyper mutation status comment
             summary_string += (
                 f"{ReportController.get_hypermutation_string(results_summary)}\n\n"
@@ -161,33 +175,19 @@ class ReportController:
 
         v_identity_string = "%, ".join(str(x) for x in deepcopy(v_identity))
 
-        swedish_number_string = [
-            "",
-            "ett",
-            "två",
-            "tre",
-            "fyra",
-            "Fem",
-            "sex",
-            "sju",
-            "åtta",
-            "nio",
-            "tio",
-        ]
-
         if all(
             float(v_identity_per)
             > cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
             for v_identity_per in v_identity
         ):
-            return_string = f"Analysen av den {swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar ingen förekomst av somatisk hypermutation (U-CLL) i det aktuella provet ({v_identity_string}% identitet mot IGHV-genen)."
+            return_string = f"Analysen av den {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar ingen förekomst av somatisk hypermutation (U-CLL) i det aktuella provet ({v_identity_string}% identitet mot IGHV-genen)."
 
         elif all(
             float(v_identity_per)
             < cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
             for v_identity_per in v_identity
         ):
-            return_string = f"Analysen av den {swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar förekomst av somatisk hypermutation (M-CLL) i det aktuella provet ({v_identity_string}% identitet mot IGHV-genen)"
+            return_string = f"Analysen av den {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar förekomst av somatisk hypermutation (M-CLL) i det aktuella provet ({v_identity_string}% identitet mot IGHV-genen)"
 
         elif all(
             float(v_identity_per)
@@ -196,10 +196,10 @@ class ReportController:
             <= cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
             for v_identity_per in v_identity
         ):
-            return_string = f"Analysen av den {swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar borderline-resultat i det aktuella provet (97-97.98% identitet mot IGHV-genen). Det är således omöjligt att säkerställa mutationsstatus för aktuellt prov"
+            return_string = f"Analysen av den {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar borderline-resultat i det aktuella provet (97-97.98% identitet mot IGHV-genen). Det är således omöjligt att säkerställa mutationsstatus för aktuellt prov"
 
         else:
-            return_string = f"Analysen av de {swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar motsägelsefulla resultat med avseende på förekomst av somatisk hypermutation ({v_identity_string}% identitet mot IGHV-genen) i det aktuella provet. Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov."
+            return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar motsägelsefulla resultat med avseende på förekomst av somatisk hypermutation ({v_identity_string}% identitet mot IGHV-genen) i det aktuella provet. Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov."
 
         return return_string
 
@@ -247,5 +247,30 @@ class ReportController:
             )
             cll_app.logger.debug(
                 f"Report deletion for the report id {report_id} FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
+            )
+            return False
+
+    @staticmethod
+    def delete_cll_negative_report(_id: str) -> bool:
+        """
+        Delete Cll Report for a given ID from results and sample collection
+        """
+        update_instructions = {"$unset": {f"negative_report": ""}}
+        sample = ReportController.sample_handler.get_sample(_id)
+
+        try:
+            ReportController.sample_handler.samples_collection().find_one_and_update(
+                ReportController.sample_handler._query_id(_id), update_instructions
+            )
+            cll_app.logger.info(
+                f"No Results Report deletion for the report id {sample['name']} is SUCCESSFUL"
+            )
+            return True
+        except PyMongoError as e:
+            cll_app.logger.error(
+                f"Report deletion for the report id {sample['name']} FAILED due to error {str(e)}"
+            )
+            cll_app.logger.debug(
+                f"Report deletion for the report id {sample['name']} FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
             )
             return False

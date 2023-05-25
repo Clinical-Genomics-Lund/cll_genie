@@ -79,7 +79,9 @@
         {% endif %}
       </td>
       <td>
-        {% if sample.vquest %}
+        {% if 'negative_report' in sample.keys() %}
+        No Result.
+        {% elif sample.vquest or 'negative_report' in sample.keys() %}
         Completed
         {% else %}
         <a href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id) }}" >Run Analysis</a>
@@ -114,7 +116,7 @@
           {% if sample.vquest %}
           <a style="display: flex; align-items: center;"  href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}" > Re-Run &nbsp;<img height=20 src="{{ url_for('static', filename='icons/restart-96.png') }}"></a>
           {% else %}
-          <a href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}?" >Not Available - Re Analyse</a>
+          <a href="{{ url_for('main_bp.get_sequences', sample_id=sample.name, _id=sample._id)}}" >Not Available - Re Analyse</a>
           {% endif %}
         </td>
         <td>

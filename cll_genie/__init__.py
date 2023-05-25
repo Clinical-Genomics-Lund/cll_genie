@@ -1,4 +1,3 @@
-"""Initialize Flask app."""
 from flask import Flask
 from pprint import pformat
 import config
@@ -6,6 +5,7 @@ from .logging_setup import configure_logging
 
 
 def create_app():
+    """Initialize Flask app."""
     cll_app = Flask(__name__, instance_relative_config=True)
 
     if not cll_app.debug or cll_app.testing:
@@ -45,8 +45,6 @@ def register_blueprints(app: Flask) -> None:
     """
     Register Flask blueprints
     """
-
-    app.logger.info("Initializing blueprints")
 
     def bp_debug_msg(msg):
         app.logger.info(f"Blueprint added: {msg}")

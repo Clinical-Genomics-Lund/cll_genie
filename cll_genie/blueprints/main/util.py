@@ -51,6 +51,7 @@ def chunker(iterator, chunksize):
     if chunk:
         yield chunk
 
+
 def unzip(txt):
     """Extract .zip data from bytes into dict keyed on filenames."""
     with BytesIO(txt) as f_in:
@@ -61,7 +62,13 @@ def unzip(txt):
                 zipdata[item.filename] = stream.read()
     return zipdata
 
-def airr_to_fasta(airr_txt, seqid_col="sequence_id", aln_col="sequence_alignment", fallback_col="sequence"):
+
+def airr_to_fasta(
+    airr_txt,
+    seqid_col="sequence_id",
+    aln_col="sequence_alignment",
+    fallback_col="sequence",
+):
     """Convert AIRR TSV table to FASTA, both as strings.
 
     If the alignment column is empty for a given row, the sequence will be
@@ -76,6 +83,7 @@ def airr_to_fasta(airr_txt, seqid_col="sequence_id", aln_col="sequence_alignment
         fasta += ">%s\n%s\n" % (row[seqid_col], seq)
     return fasta
 
+
 class VquestError(Exception):
     """Vquest-related errors.  These can have one or more messages provided by the server."""
 
@@ -83,6 +91,3 @@ class VquestError(Exception):
         self.message = message
         self.server_messages = server_messages
         super().__init__(self.message)
-
-
-

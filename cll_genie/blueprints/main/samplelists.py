@@ -33,9 +33,9 @@ class SampleListController:
 
         sample_false_count = SampleListController.get_sample_list(query)
 
-        #samples_false = SampleListController._annotate_samples_with_cdm_data(samples_false)
         duplicate_count = [
-            SampleListController._get_duplicated_samples(sample["name"]) for sample in samples_false
+            SampleListController._get_duplicated_samples(sample["name"])
+            for sample in samples_false
         ]
 
         for sample, count in zip(samples_false, duplicate_count):
@@ -58,11 +58,8 @@ class SampleListController:
         cll_app.logger.debug(query)
         samples = (
             SampleListController.sample_handler.get_samples(query)
-            #.sort("date_added", -1)
-            .sort([
-                    ("date_added", -1),
-                    ("name", 1)
-                ])
+            # .sort("date_added", -1)
+            .sort([("date_added", -1), ("name", 1)])
             .skip(n_skip)
             .limit(page_size)
         )
