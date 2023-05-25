@@ -24,7 +24,6 @@ class SampleHandler:
     def samples_collection(self) -> pymongo.MongoClient:
         return self.mongo_client[self.db][self.collection]
 
-
     @staticmethod
     def _query_id(_id: str) -> Dict[str, ObjectId]:
         return {"_id": ObjectId(_id)}
@@ -45,44 +44,56 @@ class SampleHandler:
         return self.samples_collection().find({"name": sample_id})
 
     def get_sample_name(self, _id):
-        return self.get_sample(_id).get('name')
+        return self.get_sample(_id).get("name")
 
     def get_vquest_status(self, _id):
-        return self.get_sample(_id).get('vquest')
+        return self.get_sample(_id).get("vquest")
 
     def get_report_status(self, _id):
-        return self.get_sample(_id).get('report')
+        return self.get_sample(_id).get("report")
 
     def get_q30_per(self, _id):
-        return self.get_sample(_id).get('q30_per')
+        return self.get_sample(_id).get("q30_per")
 
     def get_lymphotrack_excel_status(self, _id):
-        return self.get_sample(_id).get('lymphotrack_excel')
+        return self.get_sample(_id).get("lymphotrack_excel")
 
     def get_lymphotrack_excel(self, _id):
-        return self.get_sample(_id).get('lymphotrack_excel_path')
-    
+        return self.get_sample(_id).get("lymphotrack_excel_path")
+
     def get_lymphotrack_qc(self, _id):
-        return self.get_sample(_id).get('lymphotrack_qc_path')
+        return self.get_sample(_id).get("lymphotrack_qc_path")
 
     def get_lymphotrack_qc_status(self, _id):
-        return self.get_sample(_id).get('lymphotrack_qc')
+        return self.get_sample(_id).get("lymphotrack_qc")
 
     def get_cll_reports(self, _id):
-        return self.get_sample(_id).get('cll_reports', {})
-    
+        return self.get_sample(_id).get("cll_reports", {})
+
+    def get_negative_report(self, _id: str) -> dict | None:
+        return self.get_sample(_id).get("negative_report", None)
+
+    def negative_report_status(self, _id: str) -> bool:
+        return bool(self.get_negative_report(_id))
+
     def update_document(self, _id, key, value) -> bool:
         """
         change the status or update any key with the new value of a document
         """
-        target = SampleHandler._query_id(_id) 
+        target = SampleHandler._query_id(_id)
         update_instructions = {"$set": {key: value}}
         try:
-            self.samples_collection().find_one_and_update( target, update_instructions )
-            cll_app.logger.debug(f"Update successful for {pformat(update_instructions)}")
-            cll_app.logger.info(f"Update successful for the id {_id} and {pformat(update_instructions)} is successful")
+            self.samples_collection().find_one_and_update(target, update_instructions)
+            cll_app.logger.debug(
+                f"Update successful for {pformat(update_instructions)}"
+            )
+            cll_app.logger.info(
+                f"Update successful for the id {_id} and {pformat(update_instructions)} is successful"
+            )
             return True
         except PyMongoError as e:
             cll_app.logger.error(f"Update FAILED due to error {str(e)}")
-            cll_app.logger.debug(f"Update FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}")
+            cll_app.logger.debug(
+                f"Update FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
+            )
             return False

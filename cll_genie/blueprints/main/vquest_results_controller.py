@@ -109,9 +109,6 @@ class ResultsController:
         cll_submission_reports = (
             ResultsController.results_handler.get_submission_reports(_id, submission_id)
         )
-        print(submission_results_count)
-        print(cll_submission_reports)
-
         try:
             if submission_results_count > 1:
                 ResultsController.results_handler.delete_submission_results(

@@ -127,6 +127,14 @@
         <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
           {{ seq_value['V-DOMAIN Functionality'] }}
         </td></tr>
+        {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
+          <tr>
+            <td><b>Kommentar</b></td>
+            <td colspan="3" style="background-color: #FFFFE0">
+              {{ seq_value['V-DOMAIN Functionality comment'] }}
+            </td>
+          </tr>
+        {% endif %}
         {% if seq_value['Indel Messages'] is not none %}
       <tr>
         <td class="report_key">Meddelanden</td>
@@ -203,11 +211,6 @@
       {% endfor %}
     </table>
   </div>
-{% else %}
-<div class="report_div">
-  <span class="report_header">Analysresultat</span>
-  <p style="color: red; text-align:justify"><i>Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat.</i></p><br>
-<div>
 {% endif %}
 <span class="report_header">Analysbeskrivning</span>
 <span class="report_text_medium" style="text-align: justify">
