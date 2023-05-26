@@ -119,7 +119,7 @@
                 <a href="{{ url_for('main_bp.download_results', sub_id=sub_id, filetype='text', id=sample._id) }}"><img height=25  src="{{ url_for('static', filename='icons/text-96.png') }}"></a>
             </td>
             <td>
-                {{ report_counts_per_submission[sub_id.split('_')[1]] or 0 }}
+                {{ report_counts_per_submission[sub_id] or 0 }}
             </td>
             <td>
                 <center><a href="{{ url_for('main_bp.cll_report', sample_id=sample.name, submission_id=sub_id.split('_')[1], _id=sample._id) }}"><img height=25 src="{{ url_for('static', filename='icons/view-96.png') }}"></a>
