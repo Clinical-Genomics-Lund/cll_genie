@@ -2,8 +2,9 @@
 data/
 cll_genie/static/js/temp/
 results/
-*log*
-scripts/*.log
+.logs
+.log
+logs/
 TODO*
 cll_genie/blueprints/models/cll_users.py
 unit_testing.py
@@ -15,7 +16,8 @@ Dockerfile_copy
 .env
 .venv
 env/
-venv*
+venv/
+venv_311/
 ENV/
 env.bak/
 
@@ -69,5 +71,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-.nfs0000000008fc1e7c00000024
 
