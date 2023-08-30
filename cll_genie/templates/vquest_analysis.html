@@ -26,7 +26,7 @@ scripts %}
           <label for="species">&emsp;&emsp;&emsp;&emsp;Species:&emsp;&emsp;&emsp;</label>
           <select id="species" name="species" onchange="updateLocus()" required>
             <option value="" disabled selected>Select a species</option>
-            <option value="human">Homo sapiens (human)</option>
+            <option value="human" selected>Homo sapiens (human)</option>
             <option value="mouse">Mus musculus (house mouse)</option>
             <option value="mas-night-monkey">
               Aotus nancymaae (Ma's night monkey)
@@ -78,7 +78,16 @@ scripts %}
         <td>
           <label for="receptorOrLocusType">&emsp;&emsp;&emsp;&emsp;Receptor type or locus:&emsp;&emsp;&emsp;</label>
           <select id="receptorOrLocusType" name="receptorOrLocusType" required>
-            <option value="" disabled selected>Select a species first</option>
+            <!--<option value="" disabled selected>Select a species first</option>-->
+            <option value="IG">IG</option>
+            <option value="IGH" selected>IGH</option>
+            <option value="IGK">IGK</option>
+            <option value="IGL">IGL</option>
+            <option value="TR">TR</option>
+            <option value="TRA">TRA</option>
+            <option value="TRB">TRB</option>
+            <option value="TRG">TRG</option>
+            <option value="TRD">TRD</option>
           </select>
         </td>
       </tr>

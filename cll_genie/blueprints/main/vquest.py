@@ -67,45 +67,50 @@ class VQuest:
         }
 
         errors = []
-        response = requests.post(VQuest.URL, data=self.payload, headers=headers)
-        cll_app.logger.info(f"{response}")
-        cll_app.logger.debug(f"payload: {self.payload}")
-        ctype = response.headers.get("Content-Type")
-        cll_app.logger.info(f"{ctype}")
-        cll_app.logger.debug(f"Received data of type {ctype}")
+        try:
+            response = requests.post(VQuest.URL, data=self.payload, headers=headers)
+            cll_app.logger.info(f"{response}")
+            cll_app.logger.debug(f"payload: {self.payload}")
+            ctype = response.headers.get("Content-Type")
+            cll_app.logger.info(f"{ctype}")
+            cll_app.logger.debug(f"Received data of type {ctype}")
 
-        if response.status_code != 200:
-            errors.extend(f"Request failed with status code {response.status_code}")
+            if response.status_code != 200:
+                errors.append(f"Request failed with status code {response.status_code}")
 
-        elif ctype and "text/html" in ctype:
-            content_type_parts = ctype.split(";")
-            for part in content_type_parts:
-                if "charset=" in part:
-                    charset = part.split("charset=")[-1].strip()
-                    break
+            elif ctype and "text/html" in ctype:
+                content_type_parts = ctype.split(";")
+                for part in content_type_parts:
+                    if "charset=" in part:
+                        charset = part.split("charset=")[-1].strip()
+                        break
 
-            default_encoding = (
-                "utf-8"  # You can change this to your desired default encoding
+                default_encoding = (
+                    "utf-8"  # You can change this to your desired default encoding
+                )
+                html = None
+                try:
+                    html = response.content.decode(charset)
+                except LookupError:
+                    html = response.content.decode(default_encoding)
+
+                cll_app.logger.info(f"\n{html}\n")
+
+                # Match elements with class="error" or class="error-message" within other tags
+                pattern = r'<ul\s+class="errorMessage">\s*(.*?)\s*</ul>'
+                matches = re.findall(pattern, html, re.DOTALL)
+                if matches:
+                    errors.extend(re.findall(r"<span>(.*?)</span>", matches[0]))
+
+                try:
+                    for div in HTML(html).find("div.form_error"):
+                        errors.append(div.text)
+                except:
+                    pass
+        except requests.exceptions.ConnectionError as e:
+            errors.append(
+                "Request failed with error 'Failed to establish a new connection'"
             )
-            html = None
-            try:
-                html = response.content.decode(charset)
-            except LookupError:
-                html = response.content.decode(default_encoding)
-
-            cll_app.logger.info(f"\n{html}\n")
-
-            # Match elements with class="error" or class="error-message" within other tags
-            pattern = r'<ul\s+class="errorMessage">\s*(.*?)\s*</ul>'
-            matches = re.findall(pattern, html, re.DOTALL)
-            if matches:
-                errors.extend(re.findall(r"<span>(.*?)</span>", matches[0]))
-
-            try:
-                for div in HTML(html).find("div.form_error"):
-                    errors.extend(div.text)
-            except:
-                pass
 
         if errors:
             for error in errors:

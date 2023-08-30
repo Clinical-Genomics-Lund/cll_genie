@@ -7,6 +7,7 @@ services:
     container_name: cll_genie_app_dev
     build:
       context: .
+      dockerfile: Dockerfile.dev
       network: host
       target: cll_genie_app_dev
     image: cll_genie:0.0.1_dev

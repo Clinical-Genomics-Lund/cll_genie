@@ -20,7 +20,7 @@ venv/
 venv_311/
 ENV/
 env.bak/
-
+.env_copy
 
 # Distribution / packaging
 .Python

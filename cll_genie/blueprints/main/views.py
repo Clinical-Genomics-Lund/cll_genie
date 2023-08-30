@@ -107,17 +107,11 @@ def download_results(filetype: str, id: str):
 
     if filetype == "zip":
         attachement_file = os.path.abspath(submission_results["results_zip_file"])
-        attachement_filename_to_download = os.path.join(
-            os.path.basename(attachement_file).replace(".zip", ""),
-            f"_{submission_id}.zip",
-        )
+        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.zip', '')}_{submission_id}.zip"
 
     elif filetype == "text":
         attachement_file = os.path.abspath(submission_results["detailed_text_file"])
-        attachement_filename_to_download = os.path.join(
-            os.path.basename(attachement_file).replace(".txt", ""),
-            f"_{submission_id}.txt",
-        )
+        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.txt', '')}_{submission_id}.txt"
 
     if os.path.exists(attachement_filename_to_download):
         response = make_response(send_file(attachement_file))
@@ -215,6 +209,7 @@ def get_sequences(sample_id: str):
     results_dir = cll_app.config["ANALYSIS_OUTDIR"]
 
     html_table = None
+    meta_info = None
     filter_message = "No sequences passed the filtration threshold! Modify the filters and rerun or proceed with report generation"
     vquest_action = "vquest_analysis"
     _id = request.args.get("_id")
@@ -265,7 +260,7 @@ def get_sequences(sample_id: str):
                 )
 
                 # Filter the data based on the "% total reads, In-frame (Y/N), No Stop codon (Y/N)" columns
-                filtered_data = excel_reader.filter_data()
+                filtered_data, meta_info = excel_reader.filter_data()
 
             except (pd.errors.ParserError, Exception) as e:
                 cll_app.logger.error(
@@ -329,6 +324,7 @@ def get_sequences(sample_id: str):
         vquest_action=vquest_action,
         filter_message=filter_message,
         html_table=html_table,
+        meta_info=meta_info,
         sample_id=sample_id,
         _id=_id,
         table_class="df-table-class",
@@ -396,8 +392,14 @@ def vquest_results(sample_id: str):
 
         # run full analysis and download zip results and process them
         vquest_full_obj = VQuest(
-            vquest_payload, results_dir, sample_id, "full", submission_id
+            vquest_payload,
+            results_dir,
+            sample_id,
+            "full",
+            submission_id,
         )
+
+        print(vquest_full_obj)
         vquest_full_results_raw, errors = vquest_full_obj.run_vquest()
 
         # sumbit again in detailed view mode and download text content, to retrive messages, subtypes which don't come with zip file
@@ -571,7 +573,10 @@ def cll_report(sample_id: str):
 def negative_report(sample_id: str):
     _id = request.args.get("_id")
     sample = ReportController.sample_handler.get_sample(_id)
-    report_with_vquest = sample.get("is_eligible_for_vquest", False)
+    SampleListController.sample_handler.update_document(
+        _id, "is_eligible_for_vquest", False
+    )
+
     negative_report_status = ReportController.sample_handler.negative_report_status(_id)
     pdf_file_path = ReportController.get_pdf_filename(_id, 0, neg=True)
     pdf_file_name = os.path.basename(pdf_file_path)
@@ -579,14 +584,14 @@ def negative_report(sample_id: str):
     report_date = ResultsController.now
     report_summary = "Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat."
 
-    if not report_with_vquest and not negative_report_status:
+    if not negative_report_status:
         try:
             clarity_data = clarity_api.sample_udfs_from_sample_id(sample["clarity_id"])
             html = render_template(
                 "cll_report_pdf.html",
                 sample_id=sample_id,
                 report_id=report_id,
-                report_with_vquest=report_with_vquest,
+                report_with_vquest=False,
                 report_summary=report_summary,
                 report_date=str(report_date).split(" ")[0],
                 clarity_data={} if clarity_data is None else clarity_data,

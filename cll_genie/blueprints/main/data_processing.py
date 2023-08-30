@@ -52,7 +52,7 @@ class ProcessExcel:
             data = pd.read_excel(
                 self.file_path,
                 sheet_name=self.excel_sheet_name,
-                header=self.excel_header_row,
+                header=None,
                 engine="openpyxl",
             )
         except FileNotFoundError as e:
@@ -80,26 +80,41 @@ class ProcessExcel:
         try:
             if ext in self.accepted_input_formats:
                 df = self.read()
+                meta_info = df[: self.excel_header_row]
+                meta_info = dict(zip(meta_info[0], meta_info[1]))
+                df_no_meta = df[self.excel_header_row + 1 :]
+                df_no_meta.columns = list(df.iloc[self.excel_header_row])
             else:
                 raise ValueError(f"File format not recognized for {path}")
         except ValueError as e:
             cll_app.logger.error(str(e))
 
         try:
-            if df is not None:
+            if df_no_meta is not None:
                 # Convert numeric columns to numeric data types
-                column_names = df.columns.tolist()
+                column_names = df_no_meta.columns.tolist()
                 for col in column_names:
-                    if pd.api.types.is_numeric_dtype(df[col]):
-                        df[col] = pd.to_numeric(df[col], errors="coerce")
+                    if pd.api.types.is_numeric_dtype(df_no_meta[col]):
+                        df_no_meta[col] = pd.to_numeric(
+                            df_no_meta[col], errors="coerce"
+                        )
 
                 # Filter the data based on the given conditions
 
-                filtered_data = df[
-                    (df["% total reads"] >= self.filtration_cutoff)
-                    & (df["In-frame (Y/N)"] == self.is_in_frame)
-                    & (df["No Stop codon (Y/N)"] == self.no_stop_codon)
+                filtered_data = df_no_meta[
+                    df_no_meta["% total reads"] >= self.filtration_cutoff
                 ]
+
+                if self.is_in_frame != "B":
+                    filtered_data = filtered_data[
+                        filtered_data["In-frame (Y/N)"] == self.is_in_frame
+                    ]
+
+                if self.no_stop_codon != "B":
+                    filtered_data = filtered_data[
+                        filtered_data["No Stop codon (Y/N)"] == self.no_stop_codon
+                    ]
+
             else:
                 raise ValueError(f"Data is empty from the file: {path}")
         except ValueError as e:
@@ -111,7 +126,7 @@ class ProcessExcel:
             flash(filtered_data_string, "info")
             cll_app.logger.info(filtered_data_string)
 
-        return filtered_data
+        return filtered_data, meta_info
 
     def extract_sequences(self, dataframe):
         ranks_sequences = list(dataframe[["Rank", "Sequence"]].to_records(index=False))

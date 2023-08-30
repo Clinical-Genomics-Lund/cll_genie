@@ -22,6 +22,7 @@ docker run \
        -e SCRIPT_NAME=$SCRIPT_NAME \
        -e LOG_LEVEL="INFO" \
        -p 5813:5000 \
+       --dns "10.212.226.10" \
        --name cll_genie_app \
        -v /data/lymphotrack/cll_results/:/cll_genie/results/ \
        -v /data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/ \
