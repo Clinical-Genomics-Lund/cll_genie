@@ -19,6 +19,7 @@ from flask import (
 from flask_weasyprint import HTML, render_pdf
 from flask_login import login_required, current_user
 from requests import HTTPError
+import requests
 from cll_genie.blueprints.main.data_processing import ProcessExcel
 from cll_genie.blueprints.main.vquest import VQuest
 from cll_genie.blueprints.main.util import add_search_query
@@ -31,6 +32,9 @@ from urllib.parse import urlencode
 import ast
 import shutil
 from zipfile import BadZipFile
+from copy import deepcopy
+from bson import ObjectId
+from datetime import datetime
 
 
 @main_bp.route("/")
@@ -132,7 +136,7 @@ def download_results(filetype: str, id: str):
         )
 
 
-@main_bp.route("/sample/<string:sample_id>", methods=["GET", "POST"])
+@main_bp.route("/sample/<string:sample_id>", methods=["GET"])
 @login_required
 def sample(sample_id: str):
     _id = request.args.get("_id")
@@ -142,13 +146,11 @@ def sample(sample_id: str):
             "results", {}
         )
         report_counts_per_submission = (
-            ResultsController.results_handler.get_report_counts_per_submission(_id)
+            ReportController.get_report_counts_per_submission(_id)
         )
-        report_summary = ResultsController.results_handler.get_reports(_id)
     else:
         results_submissions = None
         report_counts_per_submission = None
-        report_summary = None
 
     if (
         sample["total_reads"] == ""
@@ -177,7 +179,6 @@ def sample(sample_id: str):
     return render_template(
         "sample.html",
         sample=sample,
-        report_summary=report_summary,
         results_submissions=results_submissions,
         report_counts_per_submission=report_counts_per_submission,
     )
@@ -373,7 +374,6 @@ def vquest_results(sample_id: str):
     submission_id = ResultsController.get_submission_id(_id, num=sub_num)
 
     if request.method == "POST":
-        # _id = request.args.get('_id')
         submission_id = ResultsController.get_submission_id(_id, num=None)
 
         vquest_payload = VQuest.process_config(request.form.to_dict())
@@ -399,7 +399,6 @@ def vquest_results(sample_id: str):
             submission_id,
         )
 
-        print(vquest_full_obj)
         vquest_full_results_raw, errors = vquest_full_obj.run_vquest()
 
         # sumbit again in detailed view mode and download text content, to retrive messages, subtypes which don't come with zip file
@@ -466,49 +465,153 @@ def vquest_results(sample_id: str):
         return redirect(url_for("main_bp.get_sequences", sample_id=sample_id))
 
 
+@main_bp.route(
+    "/save_comment/<string:sample_id>/<string:submission_id>", methods=["POST"]
+)
+@login_required
+def save_comment(sample_id: str, submission_id: str):
+    _id = request.args.get("_id")
+    report_summary = request.form.get("report_summary")
+    _type = request.form.get("_type")
+    if _type == "save_comment" and len(report_summary) > 1:
+        new_comment = {}
+        new_comment["id"] = ObjectId()
+        new_comment["text"] = request.form.get("report_summary")
+        new_comment["time_created"] = datetime.now()
+        new_comment["author"] = current_user.get_fullname()
+        new_comment["hidden"] = False
+        new_comment["hidden_by"] = ""
+        new_comment["time_hidden"] = ""
+
+        if ResultsController.save_comments(_id, submission_id, new_comment):
+            flash(f"comment saved", "success")
+        else:
+            flash(f"There was some error saving the comment", "error")
+            cll_app.logger.error(f"There was some error saving the comment")
+    else:
+        flash(f"Comment is empty, could not be updated.", "warning")
+        cll_app.logger.warning(f"Comment is empty, could not be updated.")
+
+    return redirect(
+        url_for(
+            "main_bp.cll_report",
+            sample_id=sample_id,
+            submission_id=submission_id,
+            _id=_id,
+        )
+        + "#analysis_comments"
+    )
+
+
+@main_bp.route(
+    "/suggest_comment/<string:id>/<string:submission_id>",
+    methods=["POST"],
+)
+@login_required
+def suggest_comment(id: str, submission_id: str):
+    suggested_text = ReportController.generate_report_summary_text(id, submission_id)
+    return jsonify({"suggested_text": suggested_text})
+
+
+@main_bp.route(
+    "/update_comment_status/<string:sample_id>/<string:submission_id>",
+    methods=["GET"],
+)
+@login_required
+def update_comment_status(sample_id: str, submission_id: str):
+    _id = request.args.get("_id")
+    comment_id = request.args.get("comment_id") or None
+    query_type = request.args.get("query_type")
+    if current_user.super_user_mode():
+        if ResultsController.update_submission_comments_status(
+            _id, submission_id, comment_id, query_type
+        ):
+            flash(f"comment updated", "success")
+        else:
+            flash(f"There was some error updating the comment", "error")
+            cll_app.logger.error(f"There was some error saving the comment")
+
+    else:
+        cll_app.logger.warning(
+            "The current User is not authorized to modify the data based on the group policy."
+        )
+        flash(
+            "The current User is not authorized to modify the data based on the group policy.",
+            "warning",
+        )
+
+    return redirect(
+        url_for(
+            "main_bp.cll_report",
+            sample_id=sample_id,
+            submission_id=submission_id,
+            _id=_id,
+        )
+        + "#analysis_comments"
+    )
+
+
 @main_bp.route("/cll_report/<string:sample_id>", methods=["GET", "POST"])
 @login_required
 def cll_report(sample_id: str):
     _id = request.args.get("_id")
+    results_comments = ""
+    _type = request.args.get("_type") or None
+    submission_id = request.args.get(
+        "submission_id"
+    ) or ResultsController.get_submission_id(_id, num=-1)
+
     sample = ReportController.sample_handler.get_sample(_id)
     report_with_vquest = sample.get("is_eligible_for_vquest", False)
-    if request.method == "POST":
-        submission_id = request.args.get("submission_id")
-        report_summary = request.form.get("report_summary")
-    else:
-        submission_id = ResultsController.get_submission_id(_id, num=-1)
-        report_summary = ReportController.get_latest_report_summary_text(
-            _id, submission_id
-        )
 
-    # get the results if already exits in the database
+    if request.method == "POST":
+        report_summary = request.form.get("report_summary")
+        _type = request.form.get("_type")
+    else:
+        report_summary = ""
+
+    # get results if already exits in the database
+
     if ReportController.sample_handler.get_vquest_status(_id):
         results_parameters = ReportController.get_parameters_for_report(
             _id, submission_id
         )
         results_summary = ReportController.get_summary_for_report(_id, submission_id)
+        results_comments = ReportController.get_comments_for_report(_id, submission_id)
+
+        if results_parameters is None or results_summary is None:
+            ReportController.sample_handler.update_document(_id, "vquest", True)
+            flash(f"No Results in the database for the sample {sample_id}", "error")
+            cll_app.logger.error(
+                f"No Results in the database for the sample {sample_id}"
+            )
+            return render_template(
+                "errors.html",
+                errors=[
+                    f"There is some issue with the information in the database. It looks it is incorrect. The results are not avalible in the database"
+                ],
+                sample_id=sample_id,
+                _id=_id,
+            )
+
         pdf_file_path = ReportController.get_pdf_filename(_id, submission_id)
         pdf_file_name = os.path.basename(pdf_file_path)
         report_id = pdf_file_name.replace(".pdf", "")
-        all_report_summaries = ReportController.results_handler.get_reports(
-            _id
-        )  # for vquest collection
-        if all_report_summaries is None:
-            all_report_summaries = {}
+
         report_docs = ReportController.sample_handler.get_cll_reports(
             _id
         )  # for sample collections
 
-        if request.args.get("pdf") == "1" or "preview" in request.form:
+        if request.args.get("pdf") == "1" or _type == "preview":
             # Generate PDF
-            report_date = ResultsController.now
+            report_date = datetime.now()
             try:
                 clarity_data = clarity_api.sample_udfs_from_sample_id(
                     sample["clarity_id"]
                 )
                 html = render_template(
                     "cll_report_pdf.html",
-                    results_parameters=results_parameters,
+                    # results_parameters=results_parameters,
                     results_summary=results_summary,
                     sample_id=sample_id,
                     report_id=report_id,
@@ -518,7 +621,7 @@ def cll_report(sample_id: str):
                     clarity_data={} if clarity_data is None else clarity_data,
                 )
 
-                if request.args.get("export") == "1" or "finalize" in request.form:
+                if _type == "finalize":
                     pdf = HTML(string=html).write_pdf()
                     with open(pdf_file_path, "wb") as pdf_out:
                         pdf_out.write(pdf)
@@ -527,14 +630,15 @@ def cll_report(sample_id: str):
                     report_docs[report_id]["date_created"] = report_date
                     report_docs[report_id]["submission_id"] = submission_id
                     report_docs[report_id]["created_by"] = current_user.get_fullname()
-                    all_report_summaries[report_id] = report_summary
+                    report_docs[report_id]["hidden"] = False
+                    report_docs[report_id]["hidden_by"] = None
+                    report_docs[report_id]["time_hidden"] = None
+                    report_docs[report_id]["summary"] = report_summary
                     ReportController.sample_handler.update_document(_id, "report", True)
                     ReportController.sample_handler.update_document(
                         _id, "cll_reports", report_docs
                     )
-                    ReportController.results_handler.update_document(
-                        _id, "cll_reports", all_report_summaries
-                    )
+
                     flash(
                         f"Report with id: {report_id} save to the disk and added to the database",
                         "success",
@@ -557,6 +661,7 @@ def cll_report(sample_id: str):
                 _id=_id,
                 report_id=report_id,
                 report_summary=report_summary,
+                results_comments=results_comments,
                 report_with_vquest=report_with_vquest,
                 submission_id=submission_id,
             )
@@ -573,15 +678,12 @@ def cll_report(sample_id: str):
 def negative_report(sample_id: str):
     _id = request.args.get("_id")
     sample = ReportController.sample_handler.get_sample(_id)
-    SampleListController.sample_handler.update_document(
-        _id, "is_eligible_for_vquest", False
-    )
 
     negative_report_status = ReportController.sample_handler.negative_report_status(_id)
     pdf_file_path = ReportController.get_pdf_filename(_id, 0, neg=True)
     pdf_file_name = os.path.basename(pdf_file_path)
     report_id = pdf_file_name.replace(".pdf", "")
-    report_date = ResultsController.now
+    report_date = datetime.now()
     report_summary = "Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat."
 
     if not negative_report_status:
@@ -610,6 +712,9 @@ def negative_report(sample_id: str):
 
             ReportController.sample_handler.update_document(
                 _id, "negative_report", update_neg_report
+            )
+            SampleListController.sample_handler.update_document(
+                _id, "is_eligible_for_vquest", False
             )
             ReportController.sample_handler.update_document(_id, "report", True)
             flash(
@@ -650,38 +755,17 @@ def report_view(sample_id: str):
     _id = request.args.get("_id")
     report_id = request.args.get("report_id")
 
-    try:
-        report_counts = len(ReportController.sample_handler.get_cll_reports(_id))
-    except:
-        report_counts = 0
+    report_file = ReportController.get_latest_report(_id, report_id)
 
-    if report_counts > 0:
-        report_docs = ReportController.sample_handler.get_cll_reports(_id)
-        if report_id is None or report_id == "":
-            report_id_show = list(report_docs.keys())[-1]
-        else:
-            report_id_show = report_id
-
-        filepath = os.path.abspath(report_docs[report_id_show]["path"])
-        head, tail = os.path.split(filepath)
-        return send_from_directory(head, tail)
-    else:
-        report_docs = ReportController.sample_handler.get_negative_report(_id)
-        if (
-            report_docs is None
-            or report_docs["path"] == ""
-            or not os.path.exists(os.path.abspath(report_docs["path"]))
-        ):
-            flash(
-                f"There are no reports available in the database for the sample {sample_id}. Go to home page and create a report",
-                "error",
-            )
-        else:
-            filepath = os.path.abspath(report_docs["path"])
-            head, tail = os.path.split(filepath)
-            return send_from_directory(head, tail)
-
+    if report_file is None:
+        flash(
+            f"There are no reports available in the database for the sample {sample_id}. Go to home page and create a report",
+            "error",
+        )
         return redirect(url_for("main_bp.cll_genie"))
+    else:
+        head, tail = os.path.split(report_file)
+        return send_from_directory(head, tail)
 
 
 @main_bp.route("/toggle_report_status/<string:db_id>")
@@ -714,39 +798,31 @@ def toggle_report_status(db_id: str):
     return redirect(url_for("main_bp.cll_genie"))
 
 
-@main_bp.route("/delete_report/<string:sample_id>")
+@main_bp.route("/update_report/<string:id>/<string:report_id>", methods=["GET"])
 @login_required
-def delete_report(sample_id: str):
+def update_report(id: str, report_id: str):
     """
-    Delete the report and its contents from the analysis database and samples database
+    Update the report status as hidden or show its contents from the samples database
     """
-    _id = request.args.get("_id")
-    report_id = request.args.get("report_id")
+    sample_id = ReportController.sample_handler.get_sample_name(id)
+    query_type = request.args.get("query_type")
+    user_name = current_user.get_fullname()
+
     if current_user.super_user_mode():
-        status = ReportController.delete_cll_report(_id, report_id)
-        if status:
-            cll_app.logger.info(
-                f"Report deleted successfully for the report id {report_id}"
-            )
-            flash(
-                f"Report deleted successfully for the report id {report_id}", "success"
-            )
-            try:
-                report_counts = len(
-                    SampleListController.sample_handler.get_sample(_id)["cll_reports"]
-                )
-            except:
-                report_counts = 0
-
-            if report_counts < 1:
-                ReportController.sample_handler.update_document(_id, "report", False)
-
+        if SampleListController.sample_handler.update_report(
+            id, report_id, query_type, user_name
+        ):
+            ReportController.update_report_status(id)
+            flash(f"Report updated for the id {report_id}", "success")
         else:
-            # need more work on this
-            cll_app.logger.error(
-                f"Report deletion failed for the report id {report_id}"
+            flash(
+                f"There was some error updating the report for the id {report_id}",
+                "error",
             )
-            flash(f"Report deleted failed for the report id {report_id}", "error")
+            cll_app.logger.error(
+                f"There was some error updating the report for the id {report_id}"
+            )
+
     else:
         cll_app.logger.warning(
             "The current User is not authorized to modify the data based on the group policy."
@@ -756,7 +832,9 @@ def delete_report(sample_id: str):
             "warning",
         )
 
-    return redirect(url_for("main_bp.sample", sample_id=sample_id, _id=_id))
+    return redirect(
+        url_for("main_bp.sample", sample_id=sample_id, _id=id) + "#available_reports"
+    )
 
 
 @main_bp.route("/delete_negative_report/<string:sample_id>")
@@ -776,15 +854,8 @@ def delete_negative_report(sample_id: str):
                 f"No result report deleted successfully for the sample id {sample_id}",
                 "success",
             )
-            try:
-                report_counts = len(
-                    SampleListController.sample_handler.get_sample(_id)["cll_reports"]
-                )
-            except:
-                report_counts = 0
 
-            if report_counts < 1:
-                ReportController.sample_handler.update_document(_id, "report", False)
+            ReportController.update_report_status(_id)
 
         else:
             # need more work on this
@@ -825,25 +896,9 @@ def delete_results(id: str, sub_id: str):
                 f"Results deleted successfully for the sample id {sample_id} of submission id {sub_id}",
                 "success",
             )
-            try:
-                report_counts = len(
-                    SampleListController.sample_handler.get_sample(id)["cll_reports"]
-                )
-            except:
-                report_counts = 0
 
-            if report_counts < 1:
-                ReportController.sample_handler.update_document(id, "report", False)
-
-            try:
-                analysis_counts = len(
-                    ResultsController.results_handler.get_results(id)["results"]
-                )
-            except:
-                analysis_counts = 0
-
-            if analysis_counts < 1:
-                ReportController.sample_handler.update_document(id, "vquest", False)
+            ReportController.update_report_status(id)
+            ResultsController.update_vquest_status(id)
         else:
             cll_app.logger.error(
                 f"Results deletion failed for the sample id {sample_id} of submission id {sub_id}"

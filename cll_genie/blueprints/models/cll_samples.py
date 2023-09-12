@@ -4,6 +4,8 @@ from pymongo.errors import PyMongoError
 from bson.objectid import ObjectId  # type: ignore
 from typing import Dict, Any, Optional
 from pprint import pformat
+from copy import deepcopy
+from datetime import datetime
 
 
 class SampleHandler:
@@ -96,4 +98,59 @@ class SampleHandler:
             cll_app.logger.debug(
                 f"Update FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
             )
+            return False
+
+    def get_submission_reports(self, _id: str, submission_id: str) -> list:
+        """
+        Return a list of submission reports for a given id and submission id or an empty list if not found
+        """
+        try:
+            report_docs = self.get_cll_reports(_id)
+            submission_reports = [
+                report
+                for report in report_docs.keys()
+                if int(report.split("_")[1]) == int(submission_id.split("_")[-1])
+            ]
+            submission_reports.sort()
+            return submission_reports
+        except KeyError or ValueError or TypeError:
+            return []
+
+    def update_report(self, _id, report_id, query_type, user_name) -> bool:
+        """
+        change the status of the report to hide or show in the sample database
+        """
+        target = self._query_id(_id)
+        cll_reports = self.get_sample(_id).get("cll_reports")
+
+        if cll_reports and report_id in cll_reports:
+            cll_reports_new = deepcopy(cll_reports)
+
+            if query_type == "hide":
+                cll_reports_new[report_id]["hidden"] = True
+                cll_reports_new[report_id]["hidden_by"] = user_name
+                cll_reports_new[report_id]["time_hidden"] = datetime.now()
+            elif query_type == "show":
+                cll_reports_new[report_id]["hidden"] = False
+
+            update_instructions = {"$set": {"cll_reports": cll_reports_new}}
+
+            try:
+                self.samples_collection().find_one_and_update(
+                    target, update_instructions
+                )
+                cll_app.logger.debug(f"report update: {pformat(update_instructions)}")
+                cll_app.logger.info(
+                    f"Report update for the id {report_id} is successful"
+                )
+                return True
+            except PyMongoError as e:
+                cll_app.logger.error(f"Report update FAILED due to error {str(e)}")
+                cll_app.logger.debug(
+                    f"Report update FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
+                )
+                return False
+        else:
+            cll_app.logger.error(f"Report id: {report_id} does not exist")
+            cll_app.logger.debug(f"Report id: {report_id} does not exist")
             return False

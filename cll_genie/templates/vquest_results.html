@@ -1,6 +1,18 @@
 {% extends "base.html" %} {% block title %}CLL Results{% endblock %} 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/disable_refresh_back_nav.js') }}"></script>
+<script>
+  function reloadWindow() {
+    // Reload the window when the "Save Comment" button is clicked
+    window.location.reload();
+  }
+</script>
+<script>
+  function addText(event) {
+    var targ = event.target || event.srcElement;
+    document.getElementById("report_summary").value = targ.textContent || targ.innerText;
+  };
+</script>
 {% endblock %}
 {% block body %}
 <div id="report">
@@ -20,7 +32,7 @@
           <td width='50%'><b>Sample ID</b></td>
           <td><i>{{ sample_id }}</i></td>
         </tr>
-        {% if report_with_vquest %}
+        {% if report_with_vquest and results_parameters is not none %}
           {% for parameter_key, parameter_value in results_parameters.items() %}
           <tr>
             <td><b>{{ parameter_key }}</b></td>
@@ -38,10 +50,8 @@
     <br /><hr>
     <center><h2>IMGT/V-QUEST Results Summary</h2></center>
     <br />
-    {% if report_with_vquest %}
+    {% if report_with_vquest and results_summary is not none %}
       {% set seq_count = 1 %}
-
-
       {% for seq_id, seq_value in results_summary.items() %} 
         {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
         {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
@@ -157,7 +167,7 @@
               </td>
             </tr>
           </tbody>
-         </table><br />
+        </table><br />
         </div>
         <h3>&ensp;&ensp;CLL Subset Results</h3>
         <p>&ensp;&ensp;{{ seq_value['CLL Subset Summary'] }}</p>
@@ -168,9 +178,51 @@
       {% else %}
       <p style="color: red; text-align:justify">&ensp;&ensp;After the initial filtration process, no potential merged sequences remained. Due to this, the data was not submitted to the IMGT server, resulting in the absence of any Vquest results.</p><br>
       {% endif %} 
-      <h3>&ensp;&ensp;Analysis Summary</h3>
-      <p style="text-align:justify">{{ report_summary|replace('\n', '<br>')|safe }}</p>
-      <br />   
+      <!-- Delete this section later -->
+      <center><h2 id="analysis_comments">Analysis Comments</h2></center>
+      <div id='analysis_comments_table'>     
+        <table border='1' style="width: 100%">
+          <thead>
+            <tr>
+              <th width="10%">Who</th>
+              <th width="80%">Comment</th>
+              <th width="10%">Hide/Unhide</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if results_comments is not none %}
+
+            {% for comment in results_comments|sort(attribute='time_created', reverse=True) %}
+
+              {% if comment.hidden %}
+                <tr class="hidden-comment" style="background-color: #CC6677">
+              {% else %}
+                <tr>
+              {% endif %}
+
+              {% if not comment.hidden %}
+                <td>{{ comment.author }}<br>{{ comment.time_created|human_date }}</td>
+                <td style="white-space: normal" onclick='addText(event)'>{{ comment.text|format_comment|safe }}</td>
+                <td style="white-space: normal"><a href="{{ url_for('main_bp.update_comment_status', sample_id=sample_id, submission_id=submission_id, comment_id=comment.id, _id=_id, query_type='hide', _type='update_comment') }}" onclick="reloadWindow()"><img height=35 src="{{ url_for('static', filename='icons/delete-96.png') }}"></a></td>
+              {% elif comment.hidden and current_user.super_user_mode() %}
+                <td>{{ comment.author }}<br>{{ comment.time_created|human_date }}</td>
+                <td style="white-space: normal" onclick='showHiddenWarning()'>{{ comment.text|format_comment|safe }}</td>
+                <td><a href="{{ url_for('main_bp.update_comment_status', sample_id=sample_id, submission_id=submission_id, comment_id=comment.id, _id=_id, query_type='unhide', _type='update_comment') }}" onclick="reloadWindow()"><img height=35 src="{{ url_for('static', filename='icons/view-96.png') }}"></a></td>
+              {% endif %}
+              </tr>
+            {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+        {% if results_comments is not none %}
+        {% if results_comments|length > 0 %}
+        <a href="#" id="showAllCommentsLink">Show All Comments</a>
+        <a href="#" id="hideAllCommentsLink">Hide All Comments</a>
+        {% elif results_comments|length > 0 and results_comments|selectattr('hidden', 'equalto', false)|length > 0 %}
+        <a href="#" id="hideAllCommentsLink">Hide All Comments</a>
+        {% endif %}
+        {% endif %}
+      </div>      
       <hr> 
   </div>
 </div>
@@ -179,16 +231,25 @@
   <form method="POST" action="{{ url_for('main_bp.cll_report', sample_id=sample_id, submission_id=submission_id, pdf=1, _id=_id) }}" enctype="multipart/form-data" id="cll_report" name="cll_report">  
     <input type="hidden" name="sample_id" value="{{ sample_id }}">
     <input type="hidden" name="_id" value="{{ _id }}">
-    <label for="report_summary">Summary</label><br>
-    <textarea style="resize: vertical; width: 100%; height: 200px; white-space: pre-line; text-align:justify" name="report_summary" rows="50">{{ report_summary }}</textarea><br><br>
-    <table>
+    <br><label for="report_summary">Summary</label><br>
+    <textarea style="resize: vertical; width: 100%; height: 150px; white-space: pre-line; text-align:justify" id="report_summary" name="report_summary" rows="50" placeholder="Add summary here...">{{ report_summary }}</textarea>
+    <div class="button-container">
+      <button type="submit" name="_type" value="save_comment" id="save_comment" onclick="saveComment()">
+          <p style="font-size: 8pt"><b>Save Comment</b></p>
+      </button>
+      <button type="button" name="_type" value="suggest" id="suggest">
+          <p style="font-size: 8pt"><b>Suggest</b></p>
+      </button>
+  </div><br>
+  <br>
+    <table style="width: 100%">
       <tr>
         <td width="50%" align="center">
-          <button type="submit" name="preview" ><p style="font-size: 10pt"><b>Create PDF Preview</b></p>
+          <button type="submit" name="_type" id="preview" value="preview"><p style="font-size: 8pt"><b>Create PDF Preview</b></p>
           </button>
         </td>
         <td width="50%" align="center">
-          <button type="submit" name="finalize" onclick="showConfirmationDialog()"><p style="font-size: 10pt"><b>Finalize PDF Report</b></p>
+          <button type="submit" name="_type" id="finalize" value="finalize" onclick="showConfirmationDialog()"><p style="font-size: 8pt"><b>Finalize PDF Report</b></p>
           </button>
         </td>
       </tr>
@@ -201,11 +262,90 @@
   function showConfirmationDialog() {
     if (confirm('Is QC ok for {{sample_id}}?')) {
       // If the user confirms, submit the form
-      document.getElementById('finalise').submit();
+      document.getElementById('finalize').submit();
     } else {
       // If the user cancels, do nothing
     }
   }
+
+  function showHiddenWarning() {
+    alert('This comment is hidden, cannot add to the report.')
+  }
+
+  function saveComment() {
+    // Set the form's action attribute to the different URL
+    document.getElementById('cll_report').action = "{{ url_for('main_bp.save_comment', sample_id=sample_id, submission_id=submission_id, _id=_id ) }}";
+    // Submit the form
+    document.getElementById('cll_report').submit();
+  }
+
+  function updateComment() {
+    // Set the form's action attribute to the different URL
+    document.getElementById('cll_report').action = "{{ url_for('main_bp.update_comment_status', sample_id=sample_id, submission_id=submission_id, _id=_id ) }}";
+    // Submit the form
+    document.getElementById('cll_report').submit();
+  }
+
+  // Report comment
+  $(document).ready(function () {
+    $("#suggest").click(function () {
+      // Make an AJAX request to the Flask route
+      $.post(
+        "{{ url_for('main_bp.suggest_comment', id=_id, submission_id=submission_id) }}",
+        function (data) {
+          // Update the textarea with the suggested text
+          var suggestedText = data.suggested_text;
+          $("#report_summary").val(function (_, currentValue) {
+            // return currentValue + "\n" + suggestedText;
+            return suggestedText;
+          });
+        }
+      );
+    });
+  });
+  
+
+  // Comments display
+  $(document).ready(function () {
+    // Initially hide all comments beyond the latest two in analysis_comments_table
+    $("#analysis_comments_table tr:gt(1)").hide();
+
+    // Function to show all comments in analysis_comments_table
+    function showAllComments() {
+      $("#analysis_comments_table tr").show();
+      $("#showAllCommentsLink").hide();
+      $("#hideAllCommentsLink").show();
+    }
+
+    // Function to hide all comments beyond the latest two in analysis_comments_table
+    function hideAllComments() {
+      $("#analysis_comments_table tr:gt(1)").hide();
+      $("#showAllCommentsLink").show();
+      $("#hideAllCommentsLink").hide();
+    }
+
+    // Handle the "Show All Comments" link
+    $("#showAllCommentsLink").click(function (e) {
+      e.preventDefault(); // Prevent the link from navigating
+      showAllComments();
+    });
+
+    // Handle the "Hide All Comments" link
+    $("#hideAllCommentsLink").click(function (e) {
+      e.preventDefault(); // Prevent the link from navigating
+      hideAllComments();
+    });
+
+    // Show all comments if there are less than or equal to 2 unhidden comments
+    if ($("#analysis_comments_table tr:not(.hidden-comment)").length <= 1) {
+      showAllComments();
+    }
+  });
+
+  
+
 </script>
 
 {% endblock %}
+
+

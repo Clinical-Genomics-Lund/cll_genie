@@ -3,7 +3,7 @@
   <img src="{{ url_for('static', filename='icons/antibody-multi-96.png') }}" alt="Antibody group">
   <img style="transform: scale(0.4); transform: translateY(50%); position: absolute" src="{{ url_for('static', filename='images/dna.png') }}" alt="DNA">
   <img style="transform: scale(1%); opacity: 0.15; transform: translateY(70%); transform: translateX(10%); position: absolute" src="{{ url_for('static', filename='images/group_antibodies.png') }}" alt="Antibody group 2">
-  <span class="logo-container">Analysrapport: Kronisk lymfatisk leukemi (KLL) -<br><br><i>{{sample_id}}</i><br><br></span>
+  <span class="logo-container">IGHV mutationsstatus och subsetanalys i Kronisk lymfatisk leukemi (KLL) -<br><br><i>{{sample_id}}</i><br><br></span>
   <table class="logo-container">
     <tr>
       <td class="top_report_key">Patientnamn</td>
@@ -26,7 +26,8 @@
       <td class="top_report_val">Bone marrow / DNA</td>
     </tr><tr>
       <td class="top_report_key">Frågeställning</td>
-      <td class="top_report_val">{{ clarity_data.get('Diagnosis', '') }}</td>
+      <!--<td class="top_report_val">{{ clarity_data.get('Diagnosis', '') }}</td>-->
+      <td class="top_report_val">IGHV mutationsstatus och subsetanalys i KLL</td>
     </tr>
     <tr>
       <td class="top_report_key">Rapportdatum</td>
@@ -34,7 +35,8 @@
     </tr>  
     <tr>
       <td class="top_report_key">Analysmetod</td>
-      <td class="top_report_val">{{ clarity_data.get('Analysis', '') }}</td>
+      <!--<td class="top_report_val">{{ clarity_data.get('Analysis', '') }}</td>-->
+      <td class="top_report_val">LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande analys i IMGT/VQUEST</td>
     </tr>
     <tr>
       <td class="top_report_key">Analys genomförd av</td>
@@ -55,7 +57,7 @@
   </table>
 </div>
 <div style="page-break-after: always;"></div>
-<span class="report_header">Analysresultat</span>
+<span class="report_header">Analysresultat och Slutsats</span>
 <span class="report_text_medium" style="text-align: justify">
 {{ report_summary|replace('\n', '<br>')|safe }}<br><br>
 </span>
@@ -84,13 +86,13 @@
       <tr>
         <th class="report_variant_header" colspan="4">
           <center>
-            <span class="report_variant_header">{{ seq_name }} Sammanfattning</span>
+            <span class="report_variant_header">{{ seq_name }} Summary</span>
           </center>
         </th>
       </tr>
       <tr>
         <td class="report_key" colspan="2" >
-          Sekvens Id
+          Sequence ID
         </td>
         <td class="var_report_val" colspan="2">
           {{ seq_name }}
@@ -99,9 +101,9 @@
 
       {% if v_indel_identity_per is not none %}
       <tr>
-        <td class="report_key">Indel Sammanfattning</td>
+        <td class="report_key">Indel Summary</td>
         <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
-          {{ seq_value['Indels if Any'] }}.<br />Indels som detekteras ges nedan,<br />
+          {{ seq_value['Indels if Any'] }}.<br />Indels detected are given below,<br />
           {% if seq_value['V-REGION insertions'] is not none %}
           <i>{{ seq_value['V-REGION insertions'] }}</i>
           {% endif %} {% if seq_value['V-REGION deletions'] is not none %}
@@ -111,25 +113,25 @@
         </td>
       </tr>
       <tr>
-        <td class="report_key">V-Domain funktionalitet efter borttagning av Indels</td>
+        <td class="report_key">V-Domain functionality after removal of Indels</td>
         <td class="var_report_val" colspan="3" style="text-align: center; background-color: #FFFFE0" >
           {{ seq_value['V-DOMAIN Functionality'] }}<br />
         </td>
       </tr>
       <tr>
-        <td class="report_key">Kommentar</td>
+        <td class="report_key">Comment</td>
         <td class="var_report_val" colspan="3" style="background-color: #FFFFE0" >
           {{ seq_value['V-DOMAIN Functionality comment'] }}
         </td>
       </tr>
         {% elif v_indel_identity_per is none %}
-        <tr><td class="report_key">V-Domain funktionalitet</td>
+        <tr><td class="report_key">V-Domain functionality</td>
         <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
           {{ seq_value['V-DOMAIN Functionality'] }}
         </td></tr>
         {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
           <tr>
-            <td><b>Kommentar</b></td>
+            <td><b>Comment</b></td>
             <td colspan="3" style="background-color: #FFFFE0">
               {{ seq_value['V-DOMAIN Functionality comment'] }}
             </td>
@@ -137,7 +139,7 @@
         {% endif %}
         {% if seq_value['Indel Messages'] is not none %}
       <tr>
-        <td class="report_key">Meddelanden</td>
+        <td class="report_key">Messages</td>
         <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
           {{ seq_value['Indel Messages'] }}
         </td></tr>
@@ -146,43 +148,43 @@
         {% endif %}
       </tr>
       <tr>
-        <td class="report_key">V-GEN och allel</td>
+        <td class="report_key">V-GENE and allele</td>
         <td class="var_report_val">{{ seq_value['V-GENE and allele'] }}</td>
         <td class="var_report_val"><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
         {% if v_indel_identity_per is not none %}
         <td class="var_report_val" style="background-color: #FFFFE0">
-          <b>Identitet:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
+          <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
           v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
         </td>
         {% elif v_indel_identity_per is none %}
         <td class="var_report_val" style="background-color: #FFFFE0">
-          <b>Identitet:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
+          <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
         </td>
         {% endif %}
       </tr>
       <tr>
-        <td class="report_key">J-GEN och allel</td>
+        <td class="report_key">J GENE and allele</td>
         <td class="var_report_val">{{ seq_value['J-GENE and allele'] }}</td>
         <td class="var_report_val"><b>Score:</b> {{ seq_value['J-REGION score'] }}</td>
         <td class="var_report_val">
-          <b>Identitet:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})
+          <b>Identity:</b> {{ seq_value['J-REGION identity %'] }}% ({{ seq_value['J-REGION identity nt'] }})
         </td>
       </tr>
       <tr>
-        <td class="report_key">D-GEN och allel genom IMGT/JunctionAnalysis</td>
+        <td class="report_key">D-GEN and allele by IMGT/JunctionAnalysis</td>
         <td class="var_report_val">{{ seq_value['D-GENE and allele'] }}</td>
         <td colspan="2" class="var_report_val">
-          <b>D-REGION</b> är i läsram {{ seq_value['D-REGION reading frame'] }}
+          <b>D-REGION</b> is in reading frame {{ seq_value['D-REGION reading frame'] }}
         </td>
       </tr>
       <tr>
-        <td class="report_key">FR-IMGT-längder, CDR-IMGT-längder och AA JUNCTION</td>
+        <td class="report_key">FR-IMGT lengths, CDR-IMGT lengths and AA JUNCTION</td>
         <td class="var_report_val">{{ seq_value['FR-IMGT lengths'] }}</td>
         <td class="var_report_val">[{{ seq_value['CDR-IMGT lengths'] }}]</td>
         <td class="var_report_val">{{ seq_value['AA JUNCTION'] }}</td>
       </tr>
       <tr>
-        <td class="report_key">JUNCTION längd (i nt) och dekryptering</td>
+        <td class="report_key">JUNCTION length (in nt) and decryption</td>
         <td class="var_report_val">{{ seq_value['JUNCTION-nt nb'] }} nt = {{ seq_value['JUNCTION decryption'] }}</td>
         <td colspan="2" class="var_report_val">
           <a href="https://www.imgt.org/IMGT_jcta/decryption" target="_blank ">(3'V)3'{N1}5'(D)3'{N2}5'(5'J)</a>
@@ -190,7 +192,7 @@
       </tr>
     </table>
     <span class="report_header_medium">
-      Resultat för CLL-delmängder
+      Subsetanalys
     </span>
     <span class="report_text_medium" style="text-align: justify">
       {{ seq_value['CLL Subset Summary'] }}
@@ -199,34 +201,17 @@
     
     {% set seq_count = seq_count + 1 %} {% endfor %}
   </div>
-
-  <span class="report_header">IMGT/V-QUEST databas och parameterinformation</span>
-  <div class="report_div">
-    <table class="report_general">
-      {% for parameter_key, parameter_value in results_parameters.items() %}
-      <tr>
-        <td class="parameter_report_key">{{ parameter_key }}</td>
-        <td class="parameter_report_val" style="font-size: 12px">{{ parameter_value }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
 {% endif %}
 <span class="report_header">Analysbeskrivning</span>
 <span class="report_text_medium" style="text-align: justify">
-  Vanligtvis används ett benmärg- eller blodprov för att extrahera DNA för NGS-sekvensering. Sekvenserade data analyseras därefter med hjälp av programvaran LymphoTrack Dx, som består av tre huvudkomponenter: LymphoTrack Data Analysis Application, en LymphoTrack Reporter-plugin som automatiskt kör analysen och en valfri LymphoTrack Visualization-metod, bestående av fyra Microsoft Excel (.xlsm) kalkylblad. Efter att ha erhållit dessa kalkylblad undersöker vi de sammanslagna sekvenserna, som bör ha en hög sammanslagningshastighet, inga stoppkodon och vara i ram.<br><br>
 
-  De kvalificerande sekvenserna skickas sedan till webbtjänsten <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>, ett verktyg för att anpassa immunglobulin (IG) och T-cellsreceptor (TR) nukleotidsekvenser vid Montpellier. IMGT/V-QUEST jämför din könslinje eller omarrangerade IG- eller TR-variabelsekvenser med <a href="https://www.imgt.org/IMGT_vquest/user_guide#reference_dir" traget="_blank">IMGT/V-QUEST-referensen kataloguppsättningar</a> och ger information om delmängder som är mest kliniskt relevanta, som #2 och #8.<br><br>
+  DNA har extraherats från insänt prov (vanligtvis färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar IGH-genen som inkluderas i LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe). Efterföljande sekvensanalys genomförs då sekvenseringen uppfyller QC-kraven Analysen avser detektion av funktionellt IGH-genrearrangemang (V-, D- och J-gen), förekomst av mutationsstatus samt subsettillhörighet och utförs via webbtjänsten <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. I de fall där den analyserade sekvensen avviker från germline-sekvensen i IMGT/V-QUEST (<97% identitet) bedöms provet vara hypermuterat (M-CLL). Om den analyserade sekvensen däremot har ≥98 identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99%.  
 
-  Resultaten, tillsammans med exempelinformation, visas i rapporten.
+  Detektion av subsettillhörighet görs genom analys av IGH-genes struktur mot Vidare analyseras IGH-genes struktur då denna kan påvisa subsettillhörighet och där specifika subsets delar biologiska och kliniska egenskaper. Subsetanalysen görs via IMGT/VQUEST (subset 2 och 8) och Arrest (subset 1 och 4).
 </span>
 <span class="report_header">References</span>
 <span class="report_text_medium">
 [1] Agathangelidis, A., Chatzidimitriou, A., Chatzikonstantinou, T., Tresoldi, C., Davis, Z., Giudicelli, V., ... & ERIC, the European Research Initiative on CLL. (2022). Immunoglobulin gene sequence analysis in chronic lymphocytic leukemia: the 2022 update of the recommendations by ERIC, the European Research Initiative on CLL. Leukemia, 36(8), 1961-1968.<br><br>
 [2] Brochet, X., Lefranc, M. P., & Giudicelli, V. (2008). IMGT/V-QUEST: the highly customized and integrated system for IG and TR standardized VJ and VDJ sequence analysis. Nucleic acids research, 36(suppl_2), W503-W508.
-</span>
-<span class="report_header" style="font-color:red">Varning</span>
-<span class="report_text_small">
-Denna kliniska rapport tillhandahålls endast i informationssyfte och bör inte betraktas som en ersättning för professionell medicinsk rådgivning, diagnos eller behandling. Informationen i denna rapport är baserad på analys av kliniska data och bör tolkas av kvalificerad vårdpersonal.Resultaten som presenteras i denna rapport är specifika för den enskilda patienten och kanske inte är tillämpliga på andra. Variationer i patientegenskaper, medicinsk historia och andra faktorer kan påverka tolkningen och tillämpningen av dessa fynd.
 </span>
 {% endblock %}

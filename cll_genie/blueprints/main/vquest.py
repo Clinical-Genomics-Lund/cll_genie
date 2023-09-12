@@ -327,7 +327,7 @@ class VQuest:
             else:
                 processed_text_dict[seq_id][
                     "CLL Subset Summary"
-                ] = "Inga delmängder har tilldelats"  #'No Subsets have been assigned'
+                ] = "I aktuell sekvens kan ingen subsettillhörighet identifieras. "  #'No Subsets have been assigned'
 
             if "insertions" or "deletions" in seq_value["message"]:
                 processed_text_dict[seq_id]["Indels if Any"] = seq_value[

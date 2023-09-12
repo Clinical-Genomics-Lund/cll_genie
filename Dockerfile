@@ -28,7 +28,7 @@ ENV LOG_LEVEL="INFO"
 
 
 RUN apt update &&\
-    apt install -y fonts-liberation libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info && \
+    apt install -y fonts-liberation libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info vim && \
     pip install --verbose --no-cache-dir --upgrade pip &&                 \
     pip install --verbose --no-cache-dir --requirement requirements.txt && \ 
     mkdir -p /cll_genie/results/saved_cll_reports && \

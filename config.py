@@ -27,8 +27,8 @@ class Config:
     DB_NAME = os.getenv("DB_NAME", "cll_genie")
     DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "27017")
-    DB_SAMPLES_COLLECTION = os.getenv("DB_SAMPLES_COLLECTION", "samples")
-    DB_RESULTS_COLLECTION = os.getenv("DB_RESULTS_COLLECTION", "vquest_results")
+    DB_SAMPLES_COLLECTION = os.getenv("DB_SAMPLES_COLLECTION", "samples_test")
+    DB_RESULTS_COLLECTION = os.getenv("DB_RESULTS_COLLECTION", "vquest_results_test")
     MONGO_URI = f"mongodb://{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
     # User groups with permission to delete cll_genie samples and vquest_results
@@ -76,7 +76,7 @@ class Config:
     ]  # DO NOT CHANGE THIS UNLESS YOU KNOW WHAT YOU ARE DOING
 
     # PDF Report related settings and variables
-    PDF_ANALYSIS_RUN_AT = "Centrum för molekylär diagnostik (CMD) och Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
+    PDF_ANALYSIS_RUN_AT = "Centrum för molekylär diagnostik (CMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
 
     HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF = 97.98
     HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF = 97.00

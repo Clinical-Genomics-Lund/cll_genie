@@ -13,7 +13,7 @@ services:
     image: cll_genie:0.0.1_dev
     network_mode: bridge
     ports:
-      - "5813:8000"
+      - "5814:8000"
     environment:
       - PYHTONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1

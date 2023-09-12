@@ -649,6 +649,19 @@ form button {
     border-radius: 5px;
 }
 
+.button-container {
+    display: flex;
+
+}
+
+.button-container button {
+    margin-right: 10px;
+    margin-bottom: 20px;
+    padding: 5px;
+    width: fit-content;
+    /* Add spacing between buttons */
+}
+
 /* Style the labels */
 form label {
     font-weight: bold;

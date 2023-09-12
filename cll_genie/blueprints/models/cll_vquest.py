@@ -71,7 +71,7 @@ class ResultsHandler:
         """
         try:
             return len(self.get_results(_id)["results"])
-        except (KeyError, ValueError):
+        except (KeyError, ValueError, TypeError):
             return 0
 
     def delete_document(self, _id):
@@ -84,68 +84,6 @@ class ResultsHandler:
             return True
         except PyMongoError as e:
             return False
-
-    def get_submission_reports(self, _id: str, submission_id: str) -> list:
-        """
-        Return a list of submission reports for a given id and submission id or an empty list if not found
-        """
-        try:
-            results = self.get_results(_id)
-            if results is not None:
-                report_docs = results["cll_reports"]
-                reports = {} if report_docs is None else deepcopy(report_docs)
-                submission_reports = [
-                    report
-                    for report in reports.keys()
-                    if int(report.split("_")[1]) == int(submission_id.split("_")[-1])
-                ]
-                submission_reports.sort()
-                return submission_reports
-            else:
-                return []
-        except KeyError or ValueError or TypeError:
-            return []
-
-    def get_submission_report_counts(self, _id: str, submission_id: str) -> int:
-        """
-        Return the number of submission reports for a given id and submission id or 0 if not found
-        """
-        return len(self.get_submission_reports(_id, submission_id))
-
-    def get_report_counts_per_submission(self, _id: str) -> dict:
-        """
-        Return the number of reports for all the submissions for a given id or None iff not found
-        """
-        submissions_counts = {}
-        results = self.get_results(_id).get("results", {})
-
-        if results is not None:
-            for sid in results.keys():
-                if sid not in submissions_counts:
-                    submissions_counts[sid] = self.get_submission_report_counts(
-                        _id, sid
-                    )
-
-        return submissions_counts
-
-    def next_submission_report_id(self, _id: str, submission_id: str) -> int:
-        submission_reports = self.get_submission_reports(_id, submission_id)
-        if len(submission_reports) > 0:
-            return int(submission_reports[-1].split("_")[-1]) + 1
-        else:
-            return 1
-
-    def get_reports(self, _id: str) -> dict | None:
-        """
-        Return reports for a given id and submission id or None if not found
-        """
-        return self.get_results(_id).get("cll_reports", {})
-
-    def get_report_summary(self, _id: str, report_id: str) -> str | None:
-        """
-        Return report summary for a given report_id or None if not found
-        """
-        return self.get_reports(_id)[report_id] or None
 
     def delete_submission_results(self, _id: str, submission_id: str) -> bool:
         """
@@ -164,6 +102,26 @@ class ResultsHandler:
         """
         target = ResultsHandler._query_id(_id)
         update_instructions = {"$set": {key: value}}
+
+        try:
+            self.results_collection().find_one_and_update(target, update_instructions)
+            cll_app.logger.debug(f"Update results: {pformat(update_instructions)}")
+            cll_app.logger.info(f"Update results for the id {_id} is successful")
+            return True
+        except PyMongoError as e:
+            cll_app.logger.error(f"Update results FAILED due to error {str(e)}")
+            cll_app.logger.debug(
+                f"Update results FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
+            )
+            return False
+
+    def update_comments(self, _id, submission_id, key, value) -> bool:
+        target = ResultsHandler._query_id(_id)
+
+        results = self.get_results(_id)["results"]
+        results[submission_id][key] = value
+
+        update_instructions = {"$set": {"results": results}}
 
         try:
             self.results_collection().find_one_and_update(target, update_instructions)

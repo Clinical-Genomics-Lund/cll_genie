@@ -37,7 +37,7 @@ class ReportController:
             return ReportController.results_handler.get_results(_id)["results"][
                 submission_id
             ]["vquest_parameters"]
-        except KeyError:
+        except:
             return None
 
     @staticmethod
@@ -76,6 +76,56 @@ class ReportController:
             return None
 
     @staticmethod
+    def get_comments_for_report(_id: str, submission_id: str) -> dict | None:
+        """
+        Fetch the results comments from the database and process the comments for the report
+        """
+
+        if ReportController.results_handler.results_document_exists(_id):
+            comments = ReportController.results_handler.get_results(_id)["results"][
+                submission_id
+            ]["submission_comments"]
+            return comments
+        else:
+            return None
+
+    @staticmethod
+    def get_submission_report_counts(_id: str, submission_id: str) -> int:
+        """
+        Return the number of submission reports for a given id and submission id or 0 if not found
+        """
+        return len(
+            ReportController.sample_handler.get_submission_reports(_id, submission_id)
+        )
+
+    @staticmethod
+    def get_report_counts_per_submission(_id: str) -> dict:
+        """
+        Return the number of reports for all the submissions for a given id or None iff not found
+        """
+        submissions_counts = {}
+        results = ReportController.results_handler.get_results(_id).get("results", {})
+
+        if results:
+            for sid in results.keys():
+                if sid not in submissions_counts:
+                    submissions_counts[
+                        sid
+                    ] = ReportController.get_submission_report_counts(_id, sid)
+
+        return submissions_counts
+
+    @staticmethod
+    def next_submission_report_id(_id: str, submission_id: str) -> int:
+        submission_reports = ReportController.sample_handler.get_submission_reports(
+            _id, submission_id
+        )
+        if len(submission_reports) > 0:
+            return int(submission_reports[-1].split("_")[-1]) + 1
+        else:
+            return 1
+
+    @staticmethod
     def get_pdf_filename(_id: str, submission_id: str, neg=False) -> str:
         """
         Return a pdf filename for a given submission id and create auto report id
@@ -90,32 +140,9 @@ class ReportController:
             return f"{reports_dir}/{report_id}.pdf"
         else:
             submission_id = submission_id.replace("submission_", "")
-            report_num = ReportController.results_handler.next_submission_report_id(
-                _id, submission_id
-            )
+            report_num = ReportController.next_submission_report_id(_id, submission_id)
             report_id = f"{sample_name}_{submission_id}_{report_num}"
             return f"{reports_dir}/{report_id}.pdf"
-
-    @staticmethod
-    def get_latest_report_summary_text(_id: str, submission_id: str) -> str:
-        """
-        Return a report summary for the last report if there is or None otherwise
-        """
-
-        submission_reports = ReportController.results_handler.get_submission_reports(
-            _id, submission_id
-        )
-        if len(submission_reports) > 0:
-            report_id = submission_reports[-1]
-            report_summary = ReportController.results_handler.get_report_summary(
-                _id, report_id
-            )
-        else:
-            report_summary = ReportController.generate_report_summary_text(
-                _id, submission_id
-            )
-
-        return report_summary
 
     @staticmethod
     def generate_report_summary_text(_id: str, submission_id: str) -> str:
@@ -146,6 +173,7 @@ class ReportController:
                 summary_string += "I aktuellt KLL prov kan ett funktionellt IGH-gen rearrangemang identifieras.\n\n"
             elif number_of_submitted_seqs > 1:
                 summary_string += f"I aktuellt KLL prov kan {ReportController.swedish_number_string[number_of_submitted_seqs]} funktionella IGH-gen rearrangemang identifieras.\n\n"
+
             # Hyper mutation status comment
             summary_string += (
                 f"{ReportController.get_hypermutation_string(results_summary)}\n\n"
@@ -226,14 +254,11 @@ class ReportController:
     @staticmethod
     def delete_cll_report(_id: str, report_id: str) -> bool:
         """
-        Delete Cll Report for a given ID from results and sample collection
+        Delete Cll Report for a given ID from sample collection
         """
         update_instructions = {"$unset": {f"cll_reports.{report_id}": ""}}
 
         try:
-            ReportController.results_handler.results_collection().find_one_and_update(
-                ReportController.results_handler._query_id(_id), update_instructions
-            )
             ReportController.sample_handler.samples_collection().find_one_and_update(
                 ReportController.sample_handler._query_id(_id), update_instructions
             )
@@ -274,3 +299,89 @@ class ReportController:
                 f"Report deletion for the report id {sample['name']} FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
             )
             return False
+
+    @staticmethod
+    def update_report_status(_id: str) -> bool:
+        """
+        Update the report to true or false based on the reports avaliable in the sample collections
+        """
+        sample = ReportController.sample_handler.get_sample(_id)
+        reports = sample.get("cll_reports")
+        negative_reports = sample.get("negative_report")
+        neg_report_counts = unhidden_report_counts = 0
+        report_status = sample.get("report")
+
+        if reports:
+            unhidden_report_counts = len(
+                [report for report in reports if not reports[report]["hidden"]]
+            )
+
+        if negative_reports:
+            neg_report_counts = len(negative_reports)
+
+        if unhidden_report_counts < 1 and neg_report_counts < 1:
+            if ReportController.sample_handler.update_document(_id, "report", False):
+                cll_app.logger.info(
+                    f"Report status updated to False for the sample {sample['name']}"
+                )
+            else:
+                cll_app.logger.error(
+                    f"Report status updated to False for the sample {sample['name']} is not sucessful due to some error"
+                )
+                return False
+
+        if unhidden_report_counts >= 1 or neg_report_counts >= 1 and not report_status:
+            if ReportController.sample_handler.update_document(_id, "report", True):
+                cll_app.logger.info(
+                    f"Report status updated to True for the sample {sample['name']}"
+                )
+            else:
+                cll_app.logger.error(
+                    f"Report status updated to True for the sample {sample['name']} is not sucessful due to some error"
+                )
+                return False
+
+        return True
+
+    @staticmethod
+    def get_latest_report(_id: str, report_id: str) -> None | str:
+        """
+        Get the latest report from the database if it exists
+        """
+
+        report_docs = ReportController.sample_handler.get_cll_reports(_id)
+        neg_report_docs = ReportController.sample_handler.get_negative_report(_id)
+        unhidden_reports_ids = [
+            report for report in report_docs.keys() if not report_docs[report]["hidden"]
+        ]
+        unhidden_reports_ids.sort()
+        print(unhidden_reports_ids)
+
+        if unhidden_reports_ids is not None or unhidden_reports_ids is not []:
+            if report_id is None or report_id == "":
+                report_id_show = unhidden_reports_ids[-1]
+            elif (
+                report_id is not None
+                or report_id != ""
+                and report_id in unhidden_reports_ids
+            ):
+                report_id_show = report_id
+            else:
+                report_id_show = None
+
+            if report_id_show is not None:
+                filepath = os.path.abspath(report_docs[report_id_show]["path"])
+            else:
+                filepath = None
+
+        else:
+            if (
+                neg_report_docs is None
+                or neg_report_docs["path"] == ""
+                or not os.path.exists(os.path.abspath(neg_report_docs["path"]))
+            ):
+                filepath = None
+            else:
+                filepath = os.path.abspath(neg_report_docs["path"])
+        print(filepath)
+        return filepath
