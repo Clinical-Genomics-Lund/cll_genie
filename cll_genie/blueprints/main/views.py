@@ -22,7 +22,7 @@ from requests import HTTPError
 import requests
 from cll_genie.blueprints.main.data_processing import ProcessExcel
 from cll_genie.blueprints.main.vquest import VQuest
-from cll_genie.blueprints.main.util import add_search_query
+from cll_genie.blueprints.main.util import add_search_query, create_base64_logo
 from cll_genie.blueprints.main.samplelists import SampleListController
 from cll_genie.blueprints.main import main_bp
 from cll_genie.blueprints.main.vquest_results_controller import ResultsController
@@ -577,78 +577,88 @@ def cll_report(sample_id: str):
                 _id=_id,
             )
 
-        pdf_file_path = ReportController.get_pdf_filename(_id, submission_id)
-        pdf_file_name = os.path.basename(pdf_file_path)
-        report_id = pdf_file_name.replace(".pdf", "")
+        logo_base64 = create_base64_logo(cll_app.config["LOGO_PATH"])
+        antibody_base64 = create_base64_logo(cll_app.config["ANTIBODY_LOGO_PATH"])
+        html_file_path = ReportController.get_html_filename(_id, submission_id)
+        html_file_name = os.path.basename(html_file_path)
+        report_id = html_file_name.replace(".html", "")
 
         report_docs = ReportController.sample_handler.get_cll_reports(
             _id
         )  # for sample collections
 
-        if request.args.get("pdf") == "1" or _type == "preview":
-            # Generate PDF
-            report_date = datetime.now()
-            try:
-                clarity_data = clarity_api.sample_udfs_from_sample_id(
-                    sample["clarity_id"]
-                )
+        report_date = datetime.now()
+
+        # To show a warning sign
+        if _type == "preview":
+            preview = True
+        else:
+            preview = False
+
+        try:
+            if _type == "preview" or _type == "export":
                 html = render_template(
-                    "cll_report_pdf.html",
-                    # results_parameters=results_parameters,
+                    "cll_report.html",
                     results_summary=results_summary,
                     sample_id=sample_id,
                     report_id=report_id,
                     report_summary=report_summary,
                     report_with_vquest=report_with_vquest,
                     report_date=str(report_date).split(" ")[0],
-                    clarity_data={} if clarity_data is None else clarity_data,
+                    logo_base64=logo_base64,
+                    antibody_base64=antibody_base64,
+                    submission_id=submission_id,
+                    sample=sample,
+                    preview=preview,
                 )
 
-                if _type == "finalize":
-                    pdf = HTML(string=html).write_pdf()
-                    with open(pdf_file_path, "wb") as pdf_out:
-                        pdf_out.write(pdf)
-                    report_docs[report_id] = {}
-                    report_docs[report_id]["path"] = pdf_file_path
-                    report_docs[report_id]["date_created"] = report_date
-                    report_docs[report_id]["submission_id"] = submission_id
-                    report_docs[report_id]["created_by"] = current_user.get_fullname()
-                    report_docs[report_id]["hidden"] = False
-                    report_docs[report_id]["hidden_by"] = None
-                    report_docs[report_id]["time_hidden"] = None
-                    report_docs[report_id]["summary"] = report_summary
-                    ReportController.sample_handler.update_document(_id, "report", True)
-                    ReportController.sample_handler.update_document(
-                        _id, "cll_reports", report_docs
-                    )
+            if _type == "preview":
+                # return render_pdf(HTML(string=html))
+                return html
+            elif _type == "export":
+                with open(html_file_path, "w") as html_out:
+                    html_out.write(html)
 
-                    flash(
-                        f"Report with id: {report_id} save to the disk and added to the database",
-                        "success",
-                    )
-                    return redirect(url_for("main_bp.cll_genie"))
-                # Render it!
-                return render_pdf(HTML(string=html))
-            except Exception as e:
-                flash(f"Report cannot be created", "error")
-                cll_app.logger.error(f"Report cannot be created due to error: {str(e)}")
+                report_docs[report_id] = {}
+                report_docs[report_id]["path"] = html_file_path
+                report_docs[report_id]["date_created"] = report_date
+                report_docs[report_id]["submission_id"] = submission_id
+                report_docs[report_id]["created_by"] = current_user.get_fullname()
+                report_docs[report_id]["hidden"] = False
+                report_docs[report_id]["hidden_by"] = None
+                report_docs[report_id]["time_hidden"] = None
+                report_docs[report_id]["summary"] = report_summary
+                ReportController.sample_handler.update_document(_id, "report", True)
+                ReportController.sample_handler.update_document(
+                    _id, "cll_reports", report_docs
+                )
+
+                flash(
+                    f"Report with id: {report_id} save to the disk and added to the database",
+                    "success",
+                )
+                return redirect(url_for("main_bp.cll_genie"))
+            else:
+                print(results_summary)
                 return render_template(
-                    "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
+                    "vquest_results.html",
+                    results_parameters=results_parameters,
+                    results_summary=results_summary,
+                    sample_id=sample_id,
+                    _id=_id,
+                    report_id=report_id,
+                    report_summary=report_summary,
+                    results_comments=results_comments,
+                    report_with_vquest=report_with_vquest,
+                    submission_id=submission_id,
                 )
-        else:
-            print(results_summary)
+        except Exception as e:
+            flash(f"Report cannot be created", "error")
+            cll_app.logger.error(f"Report cannot be created due to error: {str(e)}")
             return render_template(
-                "vquest_results.html",
-                results_parameters=results_parameters,
-                results_summary=results_summary,
-                sample_id=sample_id,
-                _id=_id,
-                report_id=report_id,
-                report_summary=report_summary,
-                results_comments=results_comments,
-                report_with_vquest=report_with_vquest,
-                submission_id=submission_id,
+                "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
             )
+
     else:
         flash(
             f"Cannot create report, Vquest results are not available, please run your analysis",
@@ -665,9 +675,9 @@ def negative_report(sample_id: str):
     report_comment = ""
 
     negative_report_status = ReportController.sample_handler.negative_report_status(_id)
-    pdf_file_path = ReportController.get_pdf_filename(_id, 0, neg=True)
-    pdf_file_name = os.path.basename(pdf_file_path)
-    report_id = pdf_file_name.replace(".pdf", "")
+    html_file_path = ReportController.get_html_filename(_id, 0, neg=True)
+    html_file_name = os.path.basename(html_file_path)
+    report_id = html_file_name.replace(".html", "")
     report_date = datetime.now()
     report_summary_auto = "Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat."
     if request.method == "POST":
@@ -676,24 +686,21 @@ def negative_report(sample_id: str):
     report_summary = f"{report_summary_auto}\n{report_comment}"
     if not negative_report_status:
         try:
-            clarity_data = clarity_api.sample_udfs_from_sample_id(sample["clarity_id"])
             html = render_template(
-                "cll_report_pdf.html",
+                "cll_report.html",
                 sample_id=sample_id,
                 report_id=report_id,
                 report_with_vquest=False,
                 report_summary=report_summary,
                 report_date=str(report_date).split(" ")[0],
-                clarity_data={} if clarity_data is None else clarity_data,
             )
 
-            pdf = HTML(string=html).write_pdf()
-            with open(pdf_file_path, "wb") as pdf_out:
-                pdf_out.write(pdf)
+            with open(html_file_path, "w") as html_out:
+                html_out.write(html)
 
             update_neg_report = {
                 "report_id": report_id,
-                "path": pdf_file_path,
+                "path": html_file_path,
                 "date_created": report_date,
                 "summary": report_summary,
                 "created_by": current_user.get_fullname(),

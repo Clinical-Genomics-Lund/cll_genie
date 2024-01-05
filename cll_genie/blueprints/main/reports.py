@@ -158,9 +158,9 @@ class ReportController:
             return 1
 
     @staticmethod
-    def get_pdf_filename(_id: str, submission_id: str, neg=False) -> str:
+    def get_html_filename(_id: str, submission_id: str, neg=False) -> str:
         """
-        Return a pdf filename for a given submission id and create auto report id
+        Return a html filename for a given submission id and create auto report id
         """
         sample_name = ReportController.sample_handler.get_sample_name(_id)
         reports_dir = cll_app.config["REPORT_OUTDIR"]
@@ -169,17 +169,17 @@ class ReportController:
 
         if neg:
             report_id = f"{sample_name}_NO_RESULT"
-            return f"{reports_dir}/{report_id}.pdf"
+            return f"{reports_dir}/{report_id}.html"
         else:
             submission_id = submission_id.replace("submission_", "")
             report_num = ReportController.next_submission_report_id(_id, submission_id)
             report_id = f"{sample_name}_{submission_id}_{report_num}"
-            return f"{reports_dir}/{report_id}.pdf"
+            return f"{reports_dir}/{report_id}.html"
 
     @staticmethod
     def generate_report_summary_text(_id: str, submission_id: str) -> str:
         """
-        Build report summary for pdf reports
+        Build report summary for html reports
         """
         try:
             results_summary = ReportController.results_handler.get_results(_id)[

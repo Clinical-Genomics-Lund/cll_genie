@@ -228,7 +228,7 @@
 </div>
 
 <div>
-  <form method="POST" action="{{ url_for('main_bp.cll_report', sample_id=sample_id, submission_id=submission_id, pdf=1, _id=_id) }}" enctype="multipart/form-data" id="cll_report" name="cll_report">  
+  <form method="POST" action="{{ url_for('main_bp.cll_report', sample_id=sample_id, submission_id=submission_id, _id=_id) }}" enctype="multipart/form-data" id="cll_report" name="cll_report">  
     <input type="hidden" name="sample_id" value="{{ sample_id }}">
     <input type="hidden" name="_id" value="{{ _id }}">
     <br><label for="report_summary">Summary</label><br>
@@ -245,11 +245,11 @@
     <table style="width: 100%">
       <tr>
         <td width="50%" align="center">
-          <button type="submit" name="_type" id="preview" value="preview"><p style="font-size: 8pt"><b>Create PDF Preview</b></p>
+          <button type="submit" name="_type" id="preview" value="preview"><p style="font-size: 8pt"><b>Preview Report</b></p>
           </button>
         </td>
         <td width="50%" align="center">
-          <button type="submit" name="_type" id="finalize" value="finalize" onclick="showConfirmationDialog()"><p style="font-size: 8pt"><b>Finalize PDF Report</b></p>
+          <button type="submit" name="_type" id="export" value="export" onclick="showConfirmationDialog()"><p style="font-size: 8pt"><b>Finalize Report</b></p>
           </button>
         </td>
       </tr>
@@ -262,7 +262,7 @@
   function showConfirmationDialog() {
     if (confirm('Is QC ok for {{sample_id}}?')) {
       // If the user confirms, submit the form
-      document.getElementById('finalize').submit();
+      document.getElementById('export').submit();
     } else {
       // If the user cancels, do nothing
       event.preventDefault();

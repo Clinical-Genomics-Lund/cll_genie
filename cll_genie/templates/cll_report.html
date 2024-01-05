@@ -1,64 +1,60 @@
 {% extends "report_base.html" %} {% block body %}
-<div class="logo-container">
-  <img src="{{ url_for('static', filename='icons/antibody-multi-96.png') }}" alt="Antibody group">
-  <img style="transform: scale(0.4); transform: translateY(50%); position: absolute" src="{{ url_for('static', filename='images/dna.png') }}" alt="DNA">
-  <img style="transform: scale(1%); opacity: 0.15; transform: translateY(70%); transform: translateX(10%); position: absolute" src="{{ url_for('static', filename='images/group_antibodies.png') }}" alt="Antibody group 2">
-  <span class="logo-container">IGHV mutationsstatus och subsetanalys i Kronisk lymfatisk leukemi (KLL) - <i>{{sample_id}}</i><br><br></span>
-  <table class="logo-container">
-    <tr>
-      <td class="top_report_key">Patientnamn</td>
-      <td class="top_report_val">{{ clarity_data.get('Patient Name', '') }}</td>
-    </tr>
-    <tr>
-      <td class="top_report_key">Personnummer</td>
-      <td class="top_report_val">{{ clarity_data.get('Personal Identity Number', '') }}</td>
-    </tr>
-    <tr>
-      <td class="top_report_key">Prov-ID</td>
-      <td class="top_report_val">{{ sample_id }}</td>
-    </tr>
-    <tr>
-      <td class="top_report_key">Registreringsdatum</td>
-      <td class="top_report_val">{{ clarity_data.get('Date of arrival', '') }}</td>
-    </tr> 
-    <tr>
-      <td class="top_report_key">Provtyp</td>
-      <td class="top_report_val">{{ clarity_data.get('Nucleotide Type', 'Bone marrow / DNA') }}</td>
-    </tr><tr>
-      <td class="top_report_key">Frågeställning</td>
-      <td class="top_report_val">IGHV mutationsstatus och subsetanalys i KLL</td>
-    </tr>
-    <tr>
-      <td class="top_report_key">Rapportdatum</td>
-      <td class="top_report_val">{{ report_date }}</td>
-    </tr>  
-    <tr>
-      <td class="top_report_key">Analysmetod</td>
-      <td class="top_report_val">LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande analys i IMGT/VQUEST</td>
-    </tr>
-    <tr>
-      <td class="top_report_key">Analys genomförd av</td>
-      <td class="top_report_val">{{ config['PDF_ANALYSIS_RUN_AT'] }}</td>
-    </tr>
-    <tr>
-      <td class="top_report_key">Rapport skapad av</td>
-      <td class="top_report_val">{{ current_user.get_fullname() }}</td>
-    </tr>  
-    <tr>
-      <td class="top_report_key">Rapport-ID</td>
-      <td class="top_report_val">{{ report_id }}</td>
-    </tr>
-    <tr>
-      <td class="top_report_key">Rapportversion</td>
-      <td class="top_report_val">{{ config['APP_VERSION'] }}</td>
-    </tr>
-  </table>
+
+{% if preview %}
+<div style="background-color:#FCC; border:1px solid #EAA; width:600px; text-align:center; padding:20px; margin:10px 10px 30px 10px;">
+  <b>*** PREVIEW OF REPORT ***</b><br><br>
 </div>
-<div style="page-break-after: always;"></div>
+{% endif %}
+
+<span class="report_header">IGHV mutationsstatus och subsetanalys i Kronisk lymfatisk leukemi (KLL) - <i>{{sample_id}}</i></span>
+<br>
+
+<div class="report_div">
+  <table class='report_general'> 
+    <tr>
+      <td class="report_key">Patientnamn</td><td class="report_val">&lt;PATIENT_NAME&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Personnummer</td><td class="report_val">&lt;PERSONAL_IDENTITY_NUMBER&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Prov-ID</td><td class="report_val">{{ sample_id }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Registreringsdatum</td><td class="report_val">&lt;REGISTRATION_DATE&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Provtyp</td><td class="report_val">&lt;SAMPLE_TYPE&gt;</td>
+    </tr>
+    <tr>
+      <td class="report_key">Frågeställning</td><td class="report_val">IGHV mutationsstatus och subsetanalys i KLL</td>
+    </tr>
+    <tr>
+      <td class="report_key">Analysmetod</td><td class="report_val">LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande analys i IMGT/VQUEST</td>
+    </tr>
+    <tr>
+      <td class="report_key">Analys genomförd av</td><td class="report_val">{{ config['PDF_ANALYSIS_RUN_AT'] }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapportdatum</td><td class="report_val">{{ report_date }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapport skapad av</td><td class="report_val">{{ current_user.get_fullname() }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapport-ID</td><td class="report_val">{{ report_id }}</td>
+    </tr>
+    <tr>
+      <td class="report_key">Rapportversion</td><td class="report_val">{{ config['APP_VERSION'] }}</td>
+    </tr>
+</table>
+</div>
+<br>
 <span class="report_header">Analysresultat och Slutsats</span>
 <span class="report_text_medium" style="text-align: justify">
 {{ report_summary|replace('\n', '<br>')|safe }}<br><br>
 </span>
+
 {% if report_with_vquest %}
   <div style="page-break-after: always;"></div>
   <div class="report_div" style="page-break-inside: avoid;">
@@ -189,7 +185,7 @@
   </div>
 {% endif %}
 <span class="report_header">Analysbeskrivning</span>
-<span class="report_text_medium" style="text-align: justify">
+<span class="report_text_medium">
   DNA har extraherats från insänt prov (vanligtvis färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar IGH-genen som inkluderas i LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe). Efterföljande sekvensanalys genomförs då sekvenseringen uppfyller QC-kraven Analysen avser detektion av funktionellt IGH-genrearrangemang (V-, D- och J-gen), förekomst av mutationsstatus samt subsettillhörighet och utförs via webbtjänsten <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. I de fall där den analyserade sekvensen avviker från germline-sekvensen i IMGT/V-QUEST (<97% identitet) bedöms provet vara hypermuterat (M-CLL). Om den analyserade sekvensen däremot har ≥98 identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99%.  
 
   Detektion av subsettillhörighet görs genom analys av IGH-genes struktur mot Vidare analyseras IGH-genes struktur då denna kan påvisa subsettillhörighet och där specifika subsets delar biologiska och kliniska egenskaper. Subsetanalysen görs via IMGT/VQUEST (subset 2 och 8) och Arrest (subset 1 och 4).
@@ -200,3 +196,4 @@
 [2] Brochet, X., Lefranc, M. P., & Giudicelli, V. (2008). IMGT/V-QUEST: the highly customized and integrated system for IG and TR standardized VJ and VDJ sequence analysis. Nucleic acids research, 36(suppl_2), W503-W508.
 </span>
 {% endblock %}
+

@@ -7,6 +7,7 @@ from io import BytesIO, StringIO
 from zipfile import ZipFile
 from flask import current_app as cll_genie
 from copy import deepcopy
+import base64
 
 
 def add_search_query(query: dict, search_string: str) -> dict:
@@ -82,6 +83,12 @@ def airr_to_fasta(
             seq = seq or row[fallback_col]
         fasta += ">%s\n%s\n" % (row[seqid_col], seq)
     return fasta
+
+
+def create_base64_logo(logo_path):
+    with open(logo_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read())
+    return encoded_string.decode("utf-8")
 
 
 class VquestError(Exception):
