@@ -110,26 +110,26 @@ def download_results(filetype: str, id: str):
     )
 
     if filetype == "zip":
-        attachement_file = os.path.abspath(submission_results["results_zip_file"])
-        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.zip', '')}_{submission_id}.zip"
+        attachment_file = os.path.abspath(submission_results["results_zip_file"])
+        attachment_filename_to_download = f"{os.path.basename(attachment_file).replace('.zip', '')}_{submission_id}.zip"
 
     elif filetype == "text":
-        attachement_file = os.path.abspath(submission_results["detailed_text_file"])
-        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.txt', '')}_{submission_id}.txt"
+        attachment_file = os.path.abspath(submission_results["detailed_text_file"])
+        attachment_filename_to_download = f"{os.path.basename(attachment_file).replace('.txt', '')}_{submission_id}.txt"
 
-    if os.path.exists(attachement_filename_to_download):
-        response = make_response(send_file(attachement_file))
+    if os.path.exists(attachment_file):
+        response = make_response(send_file(attachment_file))
         response.headers.set(
             "Content-Disposition",
             "attachment",
-            filename=attachement_filename_to_download,
+            filename=attachment_filename_to_download,
         )
         return response
     else:
         return render_template(
             "errors.html",
             errors=[
-                f"Results file for the submission_id: {submission_id} does not exits in the path: {attachement_filename_to_download}"
+                f"Results file for the submission_id: {submission_id} does not exits in the path: {attachment_filename_to_download}"
             ],
             sample_id=sample_id,
             _id=id,
@@ -211,7 +211,7 @@ def get_sequences(sample_id: str):
 
     html_table = None
     meta_info = None
-    filter_message = "No sequences passed the filtration threshold! Modify the filters and rerun or proceed with report generation"
+    filter_message = "No sequences passed the filtration threshold! Modify the filters and rerun or proceed with negative report creation"
     vquest_action = "vquest_analysis"
     _id = request.args.get("_id")
     sample = SampleListController.sample_handler.get_sample(_id)
@@ -343,6 +343,7 @@ def vquest_analysis(sample_id: str):
         _id = request.args.get("_id")
         selected = []
         seq_selected_stats = []
+        print(request.form)
         for checkbox in request.form:
             _seq = request.form.get(checkbox).split("\\n")
             _seq_elements = _seq[0].split(";")
@@ -400,34 +401,17 @@ def vquest_results(sample_id: str):
         )
 
         vquest_full_results_raw, errors = vquest_full_obj.run_vquest()
+        print(vquest_full_results_raw)
 
-        # sumbit again in detailed view mode and download text content, to retrive messages, subtypes which don't come with zip file
-        vquest_detailed_obj = VQuest(
-            vquest_payload, results_dir, sample_id, "detailed", submission_id
-        )
-        vquest_detailed_results, errors = vquest_detailed_obj.run_vquest()
+        ### TODO
 
         # merged vquest results to insert into the database
-        if (
-            not errors
-            and vquest_full_results_raw is not None
-            and vquest_detailed_results is not None
-        ):
-            for seq_id in vquest_detailed_results.keys():
-                vquest_full_results_raw[sample_id][seq_id][
-                    "messages"
-                ] = vquest_detailed_results[seq_id]
-                subset_id = None
-                for subset in cll_app.config["CLL_SUBSETS"]:
-                    if subset in vquest_detailed_results[seq_id]["CLL Subset Summary"]:
-                        subset_id = subset
-                        break
-
-                vquest_full_results_raw[sample_id][seq_id]["summary"][
-                    "CLL subset"
-                ] = subset_id
-
-                if selected_sequences_merging_rate is not None:
+        if not errors and vquest_full_results_raw is not None:
+            for seq_id in vquest_full_results_raw[sample_id].keys():
+                if (
+                    seq_id != "parameters"
+                    and selected_sequences_merging_rate is not None
+                ):
                     vquest_full_results_raw[sample_id][seq_id]["summary"][
                         "Merge Count"
                     ] = int(selected_sequences_merging_rate[seq_id][0])
@@ -442,7 +426,6 @@ def vquest_results(sample_id: str):
                 vquest_full_results_raw,
                 submission_id,
                 vquest_full_obj.vquest_results_file,
-                vquest_detailed_obj.vquest_results_file,
             ):
                 SampleListController.sample_handler.update_document(_id, "vquest", True)
         else:
@@ -588,7 +571,7 @@ def cll_report(sample_id: str):
             return render_template(
                 "errors.html",
                 errors=[
-                    f"There is some issue with the information in the database. It looks it is incorrect. The results are not avalible in the database"
+                    f"There is some issue with the information in the database. It looks it is incorrect. The results are not available in the database"
                 ],
                 sample_id=sample_id,
                 _id=_id,
@@ -653,6 +636,7 @@ def cll_report(sample_id: str):
                     "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
                 )
         else:
+            print(results_summary)
             return render_template(
                 "vquest_results.html",
                 results_parameters=results_parameters,
@@ -678,14 +662,18 @@ def cll_report(sample_id: str):
 def negative_report(sample_id: str):
     _id = request.args.get("_id")
     sample = ReportController.sample_handler.get_sample(_id)
+    report_comment = ""
 
     negative_report_status = ReportController.sample_handler.negative_report_status(_id)
     pdf_file_path = ReportController.get_pdf_filename(_id, 0, neg=True)
     pdf_file_name = os.path.basename(pdf_file_path)
     report_id = pdf_file_name.replace(".pdf", "")
     report_date = datetime.now()
-    report_summary = "Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat."
+    report_summary_auto = "Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat."
+    if request.method == "POST":
+        report_comment = request.form.get("negative_report_comment")
 
+    report_summary = f"{report_summary_auto}\n{report_comment}"
     if not negative_report_status:
         try:
             clarity_data = clarity_api.sample_udfs_from_sample_id(sample["clarity_id"])
@@ -707,6 +695,7 @@ def negative_report(sample_id: str):
                 "report_id": report_id,
                 "path": pdf_file_path,
                 "date_created": report_date,
+                "summary": report_summary,
                 "created_by": current_user.get_fullname(),
             }
 

@@ -96,7 +96,6 @@
             <th style="text-align:center">Submission ID</th>
             <th style="text-align:center">No. of Seqs Submitted</th>
             <th style="text-align:center">Download Results Zip</th>
-            <th style="text-align:center">Download Detailed Text</th>
             <th style="text-align:center">Reports Created</th>
             <th style="text-align:center">View Results</th>
             <th style="text-align:center">Delete</th>
@@ -114,9 +113,6 @@
             </td>
             <td>
                 <a href="{{ url_for('main_bp.download_results', sub_id=sub_id, filetype='zip', id=sample._id) }}"><img height=25  src="{{ url_for('static', filename='icons/zip-file-96.png') }}"></a>
-            </td>
-            <td>
-                <a href="{{ url_for('main_bp.download_results', sub_id=sub_id, filetype='text', id=sample._id) }}"><img height=25  src="{{ url_for('static', filename='icons/text-96.png') }}"></a>
             </td>
             <td>
                 {{ report_counts_per_submission[sub_id] or 0 }}
@@ -139,9 +135,6 @@
     {% endif %}
     </table>
 </div>
-
-
-
 <div>
     <h3>Available Reports</h3>
     {% if 'cll_reports' in sample %}
@@ -224,7 +217,7 @@
                         {{ sample.negative_report.created_by }}
                     </td>
                     <td style="white-space:inherit; text-align:justify">
-                        No Result/Negative
+                        {{ sample.negative_report.summary }}
                     </td>
                     <td>
                         <a href="{{ url_for('main_bp.negative_report', sample_id=sample.name, _id=sample._id) }}" target="_blank"><img height=35 src="{{ url_for('static', filename='icons/pdf-file-96.png') }}"></a>

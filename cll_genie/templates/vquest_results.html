@@ -71,56 +71,58 @@
             </thead>
             <tbody>
             <tr>
-              <td colspan="2" width="50%"><b>Sequence Id</b></td>
-              <td colspan="2">
+              <td style="width:25%"><b>Sequence Id</b></td>
+              <td style="width:25%">
                 <i>{{ seq_name }}</i>
               </td>
+              <td style="width:25%"><b>Cll Subset</b></td>
+              <td style="background-color: #FFFFE0">
+              {% if seq_value['CLL subset'] is not none %}
+                <i><a href="https://www.imgt.org/IMGT_vquest/user_guide#afunccll" target="_blank">{{ seq_value['CLL subset'] }}</i>
+              {% else %}
+                <i>-</i>
+              {% endif %}
             </tr>
+            {% if seq_value['V-REGION potential ins/del'] is not none %}
+              <tr>
+                <td style="width:25%"><b>V-REGION potential ins/del</b></td>
+                <td colspan="3">
+                  {{ seq_value['V-REGION potential ins/del']|safe }}
+                </td>
+              </tr>
+            {% endif %}
             {% if v_indel_identity_per is not none %}
-            <tr>
-              <td><b>Indel Summary</b></td>
-              <td colspan="3" style="background-color: #FFFFE0">
-                {{ seq_value['Indels if Any'] }}.<br />Indels detected are given below,<br />
-                {% if seq_value['V-REGION insertions'] is not none %}
-                <i>{{ seq_value['V-REGION insertions'] }}</i>
-                {% endif %} {% if seq_value['V-REGION deletions'] is not none %}
-                <br />
-                <i>{{ seq_value['V-REGION deletions'] }}</i>
-                {% endif %}
-              </td>
-            </tr>
-            <tr>
-              <td><b>V-Domain functionality after removal of Indels</b></td>
-              <td colspan="3" style="text-align: center; background-color: #FFFFE0" >
-                {{ seq_value['V-DOMAIN Functionality'] }}<br />
-              </td>
-            </tr>
-            <tr>
-              <td><b>Comment</b></td>
-              <td colspan="3" style="background-color: #FFFFE0" >
-                {{ seq_value['V-DOMAIN Functionality comment'] }}
-              </td>
-            </tr>
-              {% elif v_indel_identity_per is none %}
+              <tr>
+                <td><b>Indel Summary</b></td>
+                <td colspan="3" style="background-color: #FFFFE0">
+                  {% if seq_value['V-REGION insertions'] is not none %}
+                    Nucleotide insertions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+                    <i>{{ seq_value['V-REGION insertions'] }}</i>
+                  {% elif seq_value['V-REGION deletions'] is not none %}
+                    Nucleotide deletions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+                    <i>{{ seq_value['V-REGION deletions'] }}</i>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <td><b>V-Domain functionality after removal of Indels</b></td>
+                <td colspan="3" style="text-align: center; background-color: #FFFFE0" >
+                  {{ seq_value['V-DOMAIN Functionality'] }}<br />
+                </td>
+              </tr>
+            {% elif v_indel_identity_per is none %}
               <tr><td><b>V-Domain functionality</b></td>
               <td colspan="3" style="background-color: #FFFFE0">
                 {{ seq_value['V-DOMAIN Functionality'] }}
               </td></tr>
-              {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
-                <tr>
-                  <td><b>Comment</b></td>
-                  <td colspan="3" style="background-color: #FFFFE0">
-                    {{ seq_value['V-DOMAIN Functionality comment'] }}
-                  </td>
-                </tr>
-              {% endif %}
-              {% if seq_value['Indel Messages'] is not none %}
-            <tr>
-              <td><b>Messages</b></td>
-              <td colspan="3" style="background-color: #FFFFE0">
-                {{ seq_value['Indel Messages'] }}
-              </td></tr>
-              {% endif %}
+            {% endif %}
+            {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
+              <tr>
+                <td><b>Comment</b></td>
+                <td colspan="3" style="background-color: #FFFFE0">
+                  {{ seq_value['V-DOMAIN Functionality comment'] }}
+                </td>
+              </tr>
             {% endif %}
             </tr>
             <tr>
@@ -169,15 +171,13 @@
           </tbody>
         </table><br />
         </div>
-        <h3>&ensp;&ensp;CLL Subset Results</h3>
-        <p>&ensp;&ensp;{{ seq_value['CLL Subset Summary'] }}</p>
         <br /> 
         <hr>
         {% set seq_count = seq_count + 1 %}
         {% endfor %}
-      {% else %}
+    {% else %}
       <p style="color: red; text-align:justify">&ensp;&ensp;After the initial filtration process, no potential merged sequences remained. Due to this, the data was not submitted to the IMGT server, resulting in the absence of any Vquest results.</p><br>
-      {% endif %} 
+    {% endif %}
       <!-- Delete this section later -->
       <center><h2 id="analysis_comments">Analysis Comments</h2></center>
       <div id='analysis_comments_table'>     
@@ -265,6 +265,7 @@
       document.getElementById('finalize').submit();
     } else {
       // If the user cancels, do nothing
+      event.preventDefault();
     }
   }
 

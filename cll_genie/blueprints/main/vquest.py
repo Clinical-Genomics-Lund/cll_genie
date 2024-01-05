@@ -33,6 +33,7 @@ class VQuest:
                 self.output_dir, f"{self.sample_id}.zip"
             )
 
+        # this is deprecated(since IMGT-v3.6.1, cll results are displayedi nthe excel files) and removed in the future versions
         elif self.run_type == "detailed":
             self.payload = self.subtypes_messages_payload()
             self.output_dir = Path(
@@ -181,18 +182,13 @@ class VQuest:
 
         # extract the files from the stream and save them to disk
         with ZipFile(stream, "r") as zip_file:
-            for member_name in zip_file.namelist():
-                member_content = zip_file.read(member_name)
-                output_file = Path(os.path.join(self.output_dir, member_name))
-                with output_file.open("wb") as f:
-                    f.write(member_content)
-
-        with ZipFile(self.vquest_results_file, mode="w") as zip_file:
-            for member_name in zip_file.namelist():
-                zip_file.write(
-                    filename=os.path.join(self.vquest_results_file, member_name),
-                    arcname=member_name,
-                )
+            with ZipFile(self.vquest_results_file, "w") as output_zip:
+                for member_name in zip_file.namelist():
+                    member_content = zip_file.read(member_name)
+                    output_zip.writestr(member_name, member_content)
+                    output_file = Path(os.path.join(self.output_dir, member_name))
+                    with output_file.open("wb") as f:
+                        f.write(member_content)
 
     def process_zip_results_for_report(self) -> dict:
         """

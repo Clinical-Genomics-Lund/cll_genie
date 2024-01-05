@@ -3,7 +3,7 @@
   <img src="{{ url_for('static', filename='icons/antibody-multi-96.png') }}" alt="Antibody group">
   <img style="transform: scale(0.4); transform: translateY(50%); position: absolute" src="{{ url_for('static', filename='images/dna.png') }}" alt="DNA">
   <img style="transform: scale(1%); opacity: 0.15; transform: translateY(70%); transform: translateX(10%); position: absolute" src="{{ url_for('static', filename='images/group_antibodies.png') }}" alt="Antibody group 2">
-  <span class="logo-container">IGHV mutationsstatus och subsetanalys i Kronisk lymfatisk leukemi (KLL) -<br><br><i>{{sample_id}}</i><br><br></span>
+  <span class="logo-container">IGHV mutationsstatus och subsetanalys i Kronisk lymfatisk leukemi (KLL) - <i>{{sample_id}}</i><br><br></span>
   <table class="logo-container">
     <tr>
       <td class="top_report_key">Patientnamn</td>
@@ -23,10 +23,9 @@
     </tr> 
     <tr>
       <td class="top_report_key">Provtyp</td>
-      <td class="top_report_val">Bone marrow / DNA</td>
+      <td class="top_report_val">{{ clarity_data.get('Nucleotide Type', 'Bone marrow / DNA') }}</td>
     </tr><tr>
       <td class="top_report_key">Frågeställning</td>
-      <!--<td class="top_report_val">{{ clarity_data.get('Diagnosis', '') }}</td>-->
       <td class="top_report_val">IGHV mutationsstatus och subsetanalys i KLL</td>
     </tr>
     <tr>
@@ -35,7 +34,6 @@
     </tr>  
     <tr>
       <td class="top_report_key">Analysmetod</td>
-      <!--<td class="top_report_val">{{ clarity_data.get('Analysis', '') }}</td>-->
       <td class="top_report_val">LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) med efterföljande analys i IMGT/VQUEST</td>
     </tr>
     <tr>
@@ -91,75 +89,69 @@
         </th>
       </tr>
       <tr>
-        <td class="report_key" colspan="2" >
+        <td class="report_key" >
           Sequence ID
         </td>
-        <td class="var_report_val" colspan="2">
+        <td class="var_report_val">
           {{ seq_name }}
         </td>
-      </tr>
-
-      {% if v_indel_identity_per is not none %}
-      <tr>
-        <td class="report_key">Indel Summary</td>
-        <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
-          {{ seq_value['Indels if Any'] }}.<br />Indels detected are given below,<br />
-          {% if seq_value['V-REGION insertions'] is not none %}
-          <i>{{ seq_value['V-REGION insertions'] }}</i>
-          {% endif %} {% if seq_value['V-REGION deletions'] is not none %}
-          <br />
-          <i>{{ seq_value['V-REGION deletions'] }}</i>
+        <td class="report_key">
+          CLL Subset
+        </td>
+        <td class="var_report_val" style="background-color: #FFFFE0">
+          {% if seq_value['CLL subset'] is not none %}
+            <i><a href="https://www.imgt.org/IMGT_vquest/user_guide#afunccll" target="_blank">{{ seq_value['CLL subset'] }}</i>
+          {% else %}
+            <i>-</i>
           {% endif %}
         </td>
       </tr>
-      <tr>
-        <td class="report_key">V-Domain functionality after removal of Indels</td>
-        <td class="var_report_val" colspan="3" style="text-align: center; background-color: #FFFFE0" >
-          {{ seq_value['V-DOMAIN Functionality'] }}<br />
-        </td>
-      </tr>
-      <tr>
-        <td class="report_key">Comment</td>
-        <td class="var_report_val" colspan="3" style="background-color: #FFFFE0" >
-          {{ seq_value['V-DOMAIN Functionality comment'] }}
-        </td>
-      </tr>
-        {% elif v_indel_identity_per is none %}
+      {% if v_indel_identity_per is not none %}
+        <tr>
+          <td class="report_key">Indel Summary</td>
+          <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
+            {% if seq_value['V-REGION insertions'] is not none %}
+              Nucleotide insertions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+              <i>{{ seq_value['V-REGION insertions'] }}</i>
+            {% elif seq_value['V-REGION deletions'] is not none %}
+              Nucleotide deletions have been detected and automatically removed for this analysis.<br />Indels detected are given below,<br />
+              <i>{{ seq_value['V-REGION deletions'] }}</i>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td class="report_key">V-Domain functionality after removal of Indels</td>
+          <td class="var_report_val" colspan="3" style="text-align: center; background-color: #FFFFE0" >
+            {{ seq_value['V-DOMAIN Functionality'] }}<br />
+          </td>
+        </tr>
+      {% elif v_indel_identity_per is none %}
         <tr><td class="report_key">V-Domain functionality</td>
         <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
           {{ seq_value['V-DOMAIN Functionality'] }}
         </td></tr>
-        {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
-          <tr>
-            <td><b>Comment</b></td>
-            <td colspan="3" style="background-color: #FFFFE0">
-              {{ seq_value['V-DOMAIN Functionality comment'] }}
-            </td>
-          </tr>
-        {% endif %}
-        {% if seq_value['Indel Messages'] is not none %}
-      <tr>
-        <td class="report_key">Messages</td>
-        <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
-          {{ seq_value['Indel Messages'] }}
-        </td></tr>
-        {% endif %}
-      
-        {% endif %}
-      </tr>
+      {% endif %}
+      {% if 'see comment' in seq_value['V-DOMAIN Functionality'] %}
+        <tr>
+          <td class="report_key">Comment</td>
+          <td class="var_report_val" colspan="3" style="background-color: #FFFFE0">
+            {{ seq_value['V-DOMAIN Functionality comment'] }}
+          </td>
+        </tr>
+      {% endif %}
       <tr>
         <td class="report_key">V-GENE and allele</td>
         <td class="var_report_val">{{ seq_value['V-GENE and allele'] }}</td>
         <td class="var_report_val"><b>Score:</b> {{ seq_value['V-REGION score'] }}</td>
         {% if v_indel_identity_per is not none %}
-        <td class="var_report_val" style="background-color: #FFFFE0">
-          <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
-          v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
-        </td>
+          <td class="var_report_val" style="background-color: #FFFFE0">
+            <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }}) [{{
+            v_indel_identity_per }}% ({{ v_indel_identity_nt }})]
+          </td>
         {% elif v_indel_identity_per is none %}
-        <td class="var_report_val" style="background-color: #FFFFE0">
-          <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
-        </td>
+          <td class="var_report_val" style="background-color: #FFFFE0">
+            <b>Identity:</b> {{ seq_value['V-REGION identity %'] }}% ({{ seq_value['V-REGION identity nt'] }})
+          </td>
         {% endif %}
       </tr>
       <tr>
@@ -191,20 +183,13 @@
         </td>
       </tr>
     </table>
-    <span class="report_header_medium">
-      Subsetanalys
-    </span>
-    <span class="report_text_medium" style="text-align: justify">
-      {{ seq_value['CLL Subset Summary'] }}
-    </span><br><br>
+    <br>
     <hr>
-    
     {% set seq_count = seq_count + 1 %} {% endfor %}
   </div>
 {% endif %}
 <span class="report_header">Analysbeskrivning</span>
 <span class="report_text_medium" style="text-align: justify">
-
   DNA har extraherats från insänt prov (vanligtvis färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar IGH-genen som inkluderas i LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe). Efterföljande sekvensanalys genomförs då sekvenseringen uppfyller QC-kraven Analysen avser detektion av funktionellt IGH-genrearrangemang (V-, D- och J-gen), förekomst av mutationsstatus samt subsettillhörighet och utförs via webbtjänsten <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. I de fall där den analyserade sekvensen avviker från germline-sekvensen i IMGT/V-QUEST (<97% identitet) bedöms provet vara hypermuterat (M-CLL). Om den analyserade sekvensen däremot har ≥98 identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99%.  
 
   Detektion av subsettillhörighet görs genom analys av IGH-genes struktur mot Vidare analyseras IGH-genes struktur då denna kan påvisa subsettillhörighet och där specifika subsets delar biologiska och kliniska egenskaper. Subsetanalysen görs via IMGT/VQUEST (subset 2 och 8) och Arrest (subset 1 och 4).
