@@ -18,31 +18,16 @@ class VQuest:
         config: dict,
         output_dir: str,
         sample_id: str,
-        run_type: str,
         submission_id: str,
     ):
-        self.run_type = run_type
         self.sample_id = sample_id
         self.payload = config
-
-        if self.run_type == "full":
-            self.output_dir = Path(
-                os.path.join(output_dir, sample_id, submission_id, "vquest")
-            )
-            self.vquest_results_file = os.path.join(
-                self.output_dir, f"{self.sample_id}.zip"
-            )
-
-        # this is deprecated(since IMGT-v3.6.1, cll results are displayedi nthe excel files) and removed in the future versions
-        elif self.run_type == "detailed":
-            self.payload = self.subtypes_messages_payload()
-            self.output_dir = Path(
-                os.path.join(output_dir, sample_id, submission_id, "vquest", "detailed")
-            )
-            self.vquest_results_file = os.path.join(
-                self.output_dir, f"{self.sample_id}.txt"
-            )
-
+        self.output_dir = Path(
+            os.path.join(output_dir, sample_id, submission_id, "vquest")
+        )
+        self.vquest_results_file = os.path.join(
+            self.output_dir, f"{self.sample_id}.zip"
+        )
         self.remove_files(self.vquest_results_file)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -120,58 +105,11 @@ class VQuest:
             return None, errors
         else:
             try:
-                if self.run_type == "full":
-                    self.save_zip_content(response.content)
-                    return self.process_zip_results_for_report(), None
-                elif self.run_type == "detailed":
-                    self.download_subtypes_messages(response.text)
-                    return self.process_text_results_for_report(), None
+                self.save_zip_content(response.content)
+                return self.process_zip_results_for_report(), None
             except FileNotFoundError:
                 cll_app.logger.error("File not found on the server")
                 return None, "File not found on the server"
-
-    def subtypes_messages_payload(self) -> dict:
-        # modify the config to set for detailed view and text output
-        subtypes_messages_payload = {
-            "outputType": "text",
-            "resultType": "detailed",
-            "dv_V_GENEalignment": False,
-            "dv_J_GENEalignment": False,
-            "dv_IMGTjctaResults": False,
-            "dv_eligibleD_GENE": False,
-            "dv_JUNCTIONseq": False,
-            "dv_V_REGIONalignment": False,
-            "dv_V_REGIONtranlation": False,
-            "dv_V_REGIONprotdisplay": False,
-            "dv_V_REGIONmuttable": False,
-            "dv_V_REGIONmutstats": False,
-            "dv_V_REGIONhotspots": False,
-            "dv_IMGTgappedVDJseq": False,
-            "dv_IMGTAutomat": False,
-        }
-
-        keys_to_retain = [
-            "species",
-            "receptorOrLocusType",
-            "sequences",
-            "IMGTrefdirSet",
-            "IMGTrefdirAlleles",
-            "V_REGIONsearchIndel",
-            "nbD_GENE",
-            "nbVmut",
-            "nbDmut",
-            "nbJmut",
-            "scfv",
-            "cllSubsetSearch",
-            "inputType",
-            "fileSequences",
-        ]
-
-        for key, value in self.payload.items():
-            if key in keys_to_retain:
-                subtypes_messages_payload[key] = value
-
-        return subtypes_messages_payload
 
     def save_zip_content(self, zip_data) -> None:
         """
@@ -259,85 +197,6 @@ class VQuest:
             }
 
         return results_dict
-
-    def download_subtypes_messages(self, text_content) -> None:
-        """
-        Convert the html response content to a text file and overwrites the existing content of the file.
-        """
-        with open(self.vquest_results_file, "w") as f:
-            f.write(text_content)
-
-    def process_subtypes_messages(self) -> dict:
-        """
-        Process the results of a V-QUEST subtypes or indel messages detailed view request.
-        """
-        with open(self.vquest_results_file, "r") as f:
-            text_content = f.read()
-
-        text_content = text_content.split("------------------------------")
-
-        text_content_compressed = {}
-        for seq in text_content[1:]:
-            seq_elements = seq.split(">")[1].split("\n\n")
-            seq_id = seq_elements[0].split("\n")[0]
-            text_content_compressed[seq_id] = {}
-            indel_message = None  # this will not always be available, so setting this to None initially
-            for element in seq_elements[1:]:
-                if "Result summary" in element:
-                    message = re.sub(f"Result summary: {seq_id}", "", element)
-                elif "IMGT/V-QUEST results" in element:
-                    result = re.sub(f"IMGT/V-QUEST results.*:\n", "", element)
-                elif "J-REGION partial 3" and "Low V-REGION identity" in element:
-                    indel_message = re.sub(
-                        f"Try 'Search for insertions and deletions'.*\n*", "", element
-                    )
-
-            text_content_compressed[seq_id]["message"] = message
-            text_content_compressed[seq_id]["result"] = result
-            text_content_compressed[seq_id]["indel_message"] = indel_message
-
-        return text_content_compressed
-
-    def process_text_results_for_report(self) -> dict:
-        """
-        Process the results of a V-QUEST text request including subsets assignments, indel messages.
-        It will return a nested dictionary with the following structure:
-        {
-            'subsets': {seq_id: 'CLL subset #assignment or No Subsets have been assigned'},
-            'messages': {seq_id: 'if there are any insertions or deletions, it will print the messages that are related to those, or return None'},
-            'indel_messages': {seq_id: 'if there might be any indels, and low v region identity. it's a warning to us to selected indel search parameter to TRUE and re run the analysis'}
-        }
-        """
-        text_dict = self.process_subtypes_messages()
-
-        processed_text_dict = {}
-
-        for seq_id, seq_value in text_dict.items():
-            processed_text_dict[seq_id] = {}
-
-            if "CLL subset #" in seq_value["result"]:
-                start_index = seq_value["result"].find("CLL subset #")
-                processed_text_dict[seq_id]["CLL Subset Summary"] = seq_value["result"][
-                    start_index:
-                ]
-            else:
-                processed_text_dict[seq_id][
-                    "CLL Subset Summary"
-                ] = "I aktuell sekvens kan ingen subsettillhörighet identifieras. "  #'No Subsets have been assigned'
-
-            if "insertions" or "deletions" in seq_value["message"]:
-                processed_text_dict[seq_id]["Indels if Any"] = seq_value[
-                    "message"
-                ].split(":")[0]
-                processed_text_dict[seq_id]["Indels if Any"] = re.sub(
-                    "\n", "", processed_text_dict[seq_id]["Indels if Any"]
-                )
-            else:
-                processed_text_dict[seq_id]["Indels if Any"] = None
-
-            processed_text_dict[seq_id]["Indel Messages"] = seq_value["indel_message"]
-
-        return processed_text_dict
 
     @staticmethod
     def process_config(config_dict):
