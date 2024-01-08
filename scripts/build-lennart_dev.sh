@@ -9,6 +9,19 @@ SCRIPT_NAME='' #For Dev use only
 version="0.0.2_dev"
 # version=$(python -c "import cll_genie_app.__version__; print(__version__.__version__)")
 
+#!/bin/bash
+
+# Get the latest tag for the main branch (assuming the main branch is checked out)
+latest_tag=$(git describe --tags --abbrev=0 2>/dev/null)
+
+# Check if the variable is empty (no tags found)
+if [ -z "$latest_tag" ]; then
+  echo "No tags found on the main branch."
+else
+  echo "Latest tag on the main branch: $latest_tag"
+  export CLL_GENIE_VERSION="$latest_tag"
+fi
+
 docker build --no-cache --network host --target cll_genie_app_dev -t cll_genie:$version -f Dockerfile.dev .
 
 set -o allexport; source .env; set +o allexport

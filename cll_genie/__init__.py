@@ -31,7 +31,6 @@ def create_app():
         cll_app.logger.info("Initializing app extensions.")
         init_login_manager(cll_app)
         init_mongodb(cll_app)
-        init_claritydb(cll_app)
         init_samples_handler(cll_app)
         init_results_handler(cll_app)
         cll_app.logger.info("Finished initializing app extensions.")
@@ -105,13 +104,3 @@ def init_results_handler(app: Flask) -> None:
     results_handler.initialize(
         mongo.cx, app.config["DB_NAME"], app.config["DB_RESULTS_COLLECTION"]
     )
-
-
-def init_claritydb(app: Flask) -> None:
-    """
-    Initialize Clarity API
-    """
-    from cll_genie.extensions import clarity_api
-
-    app.logger.info(f"Initializing clarityAPI at: {app.config['CLARITY_HOST']}")
-    clarity_api.init_from_app(app)

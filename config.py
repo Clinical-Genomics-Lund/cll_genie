@@ -13,6 +13,7 @@ class Config:
     TESTING = False
     SESSION_COOKIE_NAME = "cll_genie"
     VQUEST_URL = "https://www.imgt.org/IMGT_vquest/analysis"
+    APP_VERSION = os.environ.get("CLL_GENIE_VERSION") or None
 
     # Main page settings
     PAGE_SIZE = 25
@@ -43,40 +44,27 @@ class Config:
         os.path.dirname(os.path.abspath(__file__)), "results", "saved_cll_reports"
     )
 
-    REPORT_SUMMARY_COLUMNS = [  # DO NOT CHANGE THIS UNLESS YOU KNOW WHAT YOU ARE DOING
-        "V-DOMAIN Functionality",
-        "V-GENE and allele",
-        "V-REGION score",
-        "V-REGION identity %",
-        "V-REGION identity nt",
-        "V-REGION identity % (with ins/del events)",
-        "V-REGION identity nt (with ins/del events)",
-        "J-GENE and allele",
-        "J-REGION score",
-        "J-REGION identity %",
-        "J-REGION identity nt",
-        "D-GENE and allele",
-        "D-REGION reading frame",
-        "CDR-IMGT lengths",
-        "FR-IMGT lengths",
-        "AA JUNCTION",
-        "V-DOMAIN Functionality comment",
-        "V-REGION insertions",
-        "V-REGION deletions",
-        "Analysed sequence length",
-        "Sequence analysis category",
-        "CLL subset",
-        "Merge Count",
-        "Total Reads Per",
-    ]
-
-    REPORT_JUNCTION_COLUMNS = [
-        "JUNCTION-nt nb",
-        "JUNCTION decryption",
-    ]  # DO NOT CHANGE THIS UNLESS YOU KNOW WHAT YOU ARE DOING
+    # REPORT_OUTDIR = "/data/bnf/dev/ram/Pipelines/Web_Developement/cll_genie/results/saved_cll_reports"
 
     # PDF Report related settings and variables
     PDF_ANALYSIS_RUN_AT = "Centrum för molekylär diagnostik (CMD), Klinisk genetik och patologi"  # PDF REPORT FOOTER INFO
+
+    # LOGO
+    LOGO_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "cll_genie",
+        "static",
+        "images",
+        "RSKlogo-rgb.png",
+    )
+
+    ANTIBODY_LOGO_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "cll_genie",
+        "static",
+        "images",
+        "group_antibodies.png",
+    )
 
     HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF = 97.98
     HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF = 97.00

@@ -25,7 +25,6 @@ class ResultsController:
         results_data: dict,
         submission_id: str,
         zip_file_name: str,
-        text_file_name: str,
     ) -> bool:
         collection = ResultsController.results_handler.results_collection()
         sample_name = ResultsController.sample_handler.get_sample_name(_id)
@@ -39,7 +38,6 @@ class ResultsController:
             "vquest_parameters": params,
             "data_added": datetime.now(),
             "results_zip_file": zip_file_name,
-            "detailed_text_file": text_file_name,
             "submission_comments": None,
         }
 
@@ -83,7 +81,6 @@ class ResultsController:
             detailed_results_submissions = (
                 ResultsController.results_handler.get_results(_id)["results"].keys()
             )
-            print(detailed_results_submissions)
             if num is None:
                 submission_id = (
                     int(list(detailed_results_submissions)[-1].split("_")[1]) + 1
@@ -182,4 +179,4 @@ class ResultsController:
         except AttributeError:
             result_counts = 0
         if result_counts < 1:
-            ResultsController.sample_handler.update_document(id, "vquest", False)
+            ResultsController.sample_handler.update_document(_id, "vquest", False)

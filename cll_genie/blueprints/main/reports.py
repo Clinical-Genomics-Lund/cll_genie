@@ -28,6 +28,39 @@ class ReportController:
         "tio",
     ]
 
+    REPORT_SUMMARY_COLUMNS = [  # DO NOT CHANGE THIS UNLESS YOU KNOW WHAT YOU ARE DOING
+        "V-DOMAIN Functionality",
+        "V-GENE and allele",
+        "V-REGION score",
+        "V-REGION identity %",
+        "V-REGION identity nt",
+        "V-REGION identity % (with ins/del events)",
+        "V-REGION identity nt (with ins/del events)",
+        "V-REGION potential ins/del",
+        "J-GENE and allele",
+        "J-REGION score",
+        "J-REGION identity %",
+        "J-REGION identity nt",
+        "D-GENE and allele",
+        "D-REGION reading frame",
+        "CDR-IMGT lengths",
+        "FR-IMGT lengths",
+        "AA JUNCTION",
+        "V-DOMAIN Functionality comment",
+        "V-REGION insertions",
+        "V-REGION deletions",
+        "Analysed sequence length",
+        "Sequence analysis category",
+        "CLL subset",
+        "Merge Count",
+        "Total Reads Per",
+    ]
+
+    REPORT_JUNCTION_COLUMNS = [
+        "JUNCTION-nt nb",
+        "JUNCTION decryption",
+    ]
+
     @staticmethod
     def get_parameters_for_report(_id: str, submission_id: str) -> dict | None:
         """
@@ -60,16 +93,15 @@ class ReportController:
                 summary_results[seq_id].update(
                     subset_dict(
                         detailed_results[seq_id]["summary"],
-                        cll_app.config["REPORT_SUMMARY_COLUMNS"],
+                        ReportController.REPORT_SUMMARY_COLUMNS,
                     )
                 )
                 summary_results[seq_id].update(
                     subset_dict(
                         detailed_results[seq_id]["junction"],
-                        cll_app.config["REPORT_JUNCTION_COLUMNS"],
+                        ReportController.REPORT_JUNCTION_COLUMNS,
                     )
                 )
-                summary_results[seq_id].update(detailed_results[seq_id]["messages"])
 
             return summary_results
         else:
@@ -99,12 +131,16 @@ class ReportController:
         )
 
     @staticmethod
-    def get_report_counts_per_submission(_id: str) -> dict:
+    def get_report_counts_per_submission(_id: str, results: dict = None) -> dict:
         """
         Return the number of reports for all the submissions for a given id or None iff not found
         """
         submissions_counts = {}
-        results = ReportController.results_handler.get_results(_id).get("results", {})
+
+        if results is None:
+            results = ReportController.results_handler.get_results(_id).get(
+                "results", {}
+            )
 
         if results:
             for sid in results.keys():
@@ -126,9 +162,9 @@ class ReportController:
             return 1
 
     @staticmethod
-    def get_pdf_filename(_id: str, submission_id: str, neg=False) -> str:
+    def get_html_filename(_id: str, submission_id: str, neg=False) -> str:
         """
-        Return a pdf filename for a given submission id and create auto report id
+        Return a html filename for a given submission id and create auto report id
         """
         sample_name = ReportController.sample_handler.get_sample_name(_id)
         reports_dir = cll_app.config["REPORT_OUTDIR"]
@@ -137,17 +173,17 @@ class ReportController:
 
         if neg:
             report_id = f"{sample_name}_NO_RESULT"
-            return f"{reports_dir}/{report_id}.pdf"
+            return f"{reports_dir}/{report_id}.html"
         else:
             submission_id = submission_id.replace("submission_", "")
             report_num = ReportController.next_submission_report_id(_id, submission_id)
             report_id = f"{sample_name}_{submission_id}_{report_num}"
-            return f"{reports_dir}/{report_id}.pdf"
+            return f"{reports_dir}/{report_id}.html"
 
     @staticmethod
     def generate_report_summary_text(_id: str, submission_id: str) -> str:
         """
-        Build report summary for pdf reports
+        Build report summary for html reports
         """
         try:
             results_summary = ReportController.results_handler.get_results(_id)[
@@ -236,7 +272,13 @@ class ReportController:
         seqs = list(results_dict.keys())
         return_string = ""
         subset_ids = list(
-            set([results_dict[seq_id]["summary"]["CLL subset"] for seq_id in seqs])
+            set(
+                [
+                    results_dict[seq_id]["summary"]["CLL subset"]
+                    for seq_id in seqs
+                    if results_dict[seq_id]["summary"]["CLL subset"] is not None
+                ]
+            )
         )
         subset_count = len(subset_ids)
 

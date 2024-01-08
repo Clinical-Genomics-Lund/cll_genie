@@ -1,7 +1,6 @@
 import os
 import tempfile
 import pandas as pd
-import json
 from flask import current_app as cll_app
 from flask import (
     render_template,
@@ -16,23 +15,17 @@ from flask import (
     send_file,
     make_response,
 )
-from flask_weasyprint import HTML, render_pdf
 from flask_login import login_required, current_user
-from requests import HTTPError
-import requests
 from cll_genie.blueprints.main.data_processing import ProcessExcel
 from cll_genie.blueprints.main.vquest import VQuest
-from cll_genie.blueprints.main.util import add_search_query
+from cll_genie.blueprints.main.util import add_search_query, create_base64_logo
 from cll_genie.blueprints.main.samplelists import SampleListController
 from cll_genie.blueprints.main import main_bp
 from cll_genie.blueprints.main.vquest_results_controller import ResultsController
 from cll_genie.blueprints.main.reports import ReportController
-from cll_genie.extensions import clarity_api
 from urllib.parse import urlencode
 import ast
 import shutil
-from zipfile import BadZipFile
-from copy import deepcopy
 from bson import ObjectId
 from datetime import datetime
 
@@ -71,12 +64,15 @@ def download_excel(id):
     excel_file = os.path.abspath(
         SampleListController.sample_handler.get_lymphotrack_excel(id)
     )
-    if os.path.exists(excel_file):
+    try:
         return send_file(excel_file, as_attachment=True)
-    else:
+    except Exception as e:
         return render_template(
             "errors.html",
-            errors=[f"Excel file does not exits in the path: {excel_file}"],
+            errors=[
+                f"Excel file does not exits in the path: {excel_file}",
+                f"Error Caused: {str(e)}",
+            ],
             sample_id=sample_id,
             _id=id,
         )
@@ -89,12 +85,15 @@ def download_qc_file(id):
     qc_file = os.path.abspath(
         SampleListController.sample_handler.get_lymphotrack_qc(id)
     )
-    if os.path.exists(qc_file):
+    try:
         return send_file(qc_file, as_attachment=True)
-    else:
+    except Exception as e:
         return render_template(
             "errors.html",
-            errors=[f"QC file does not exits in the path: {qc_file}"],
+            errors=[
+                f"QC file does not exits in the path: {qc_file}",
+                f"Error Caused: {str(e)}",
+            ],
             sample_id=sample_id,
             _id=id,
         )
@@ -110,26 +109,27 @@ def download_results(filetype: str, id: str):
     )
 
     if filetype == "zip":
-        attachement_file = os.path.abspath(submission_results["results_zip_file"])
-        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.zip', '')}_{submission_id}.zip"
+        attachment_file = os.path.abspath(submission_results["results_zip_file"])
+        attachment_filename_to_download = f"{os.path.basename(attachment_file).replace('.zip', '')}_{submission_id}.zip"
 
     elif filetype == "text":
-        attachement_file = os.path.abspath(submission_results["detailed_text_file"])
-        attachement_filename_to_download = f"{os.path.basename(attachement_file).replace('.txt', '')}_{submission_id}.txt"
+        attachment_file = os.path.abspath(submission_results["detailed_text_file"])
+        attachment_filename_to_download = f"{os.path.basename(attachment_file).replace('.txt', '')}_{submission_id}.txt"
 
-    if os.path.exists(attachement_filename_to_download):
-        response = make_response(send_file(attachement_file))
+    try:
+        response = make_response(send_file(attachment_file))
         response.headers.set(
             "Content-Disposition",
             "attachment",
-            filename=attachement_filename_to_download,
+            filename=attachment_filename_to_download,
         )
         return response
-    else:
+    except Exception as e:
         return render_template(
             "errors.html",
             errors=[
-                f"Results file for the submission_id: {submission_id} does not exits in the path: {attachement_filename_to_download}"
+                f"Results file for the submission_id: {submission_id} does not exits in the path: {attachment_filename_to_download}",
+                f"Error Caused: {str(e)}",
             ],
             sample_id=sample_id,
             _id=id,
@@ -141,16 +141,17 @@ def download_results(filetype: str, id: str):
 def sample(sample_id: str):
     _id = request.args.get("_id")
     sample = SampleListController.sample_handler.get_sample(_id)
-    if sample is not None and sample["vquest"]:
-        results_submissions = ResultsController.results_handler.get_results(_id).get(
-            "results", {}
-        )
+    results_submissions = None
+    report_counts_per_submission = None
+
+    results = ResultsController.results_handler.get_results(_id)
+    if results is not None:
+        results_submissions = results.get("results", {})
         report_counts_per_submission = (
-            ReportController.get_report_counts_per_submission(_id)
+            ReportController.get_report_counts_per_submission(
+                _id, results=results_submissions
+            )
         )
-    else:
-        results_submissions = None
-        report_counts_per_submission = None
 
     if (
         sample["total_reads"] == ""
@@ -211,8 +212,7 @@ def get_sequences(sample_id: str):
 
     html_table = None
     meta_info = None
-    filter_message = "No sequences passed the filtration threshold! Modify the filters and rerun or proceed with report generation"
-    vquest_action = "vquest_analysis"
+    filter_message = "No sequences passed the filtration threshold! Modify the filters and rerun or proceed with negative report creation"
     _id = request.args.get("_id")
     sample = SampleListController.sample_handler.get_sample(_id)
 
@@ -292,7 +292,6 @@ def get_sequences(sample_id: str):
                         _id, "is_eligible_for_vquest", True
                     )
                 else:
-                    vquest_action = "negative_report"
                     SampleListController.sample_handler.update_document(
                         _id, "is_eligible_for_vquest", False
                     )
@@ -307,7 +306,6 @@ def get_sequences(sample_id: str):
                 )
 
             else:
-                vquest_action = "negative_report"
                 SampleListController.sample_handler.update_document(
                     _id, "is_eligible_for_vquest", False
                 )
@@ -322,7 +320,6 @@ def get_sequences(sample_id: str):
 
     return render_template(
         "get_sequences.html",
-        vquest_action=vquest_action,
         filter_message=filter_message,
         html_table=html_table,
         meta_info=meta_info,
@@ -401,33 +398,13 @@ def vquest_results(sample_id: str):
 
         vquest_full_results_raw, errors = vquest_full_obj.run_vquest()
 
-        # sumbit again in detailed view mode and download text content, to retrive messages, subtypes which don't come with zip file
-        vquest_detailed_obj = VQuest(
-            vquest_payload, results_dir, sample_id, "detailed", submission_id
-        )
-        vquest_detailed_results, errors = vquest_detailed_obj.run_vquest()
-
         # merged vquest results to insert into the database
-        if (
-            not errors
-            and vquest_full_results_raw is not None
-            and vquest_detailed_results is not None
-        ):
-            for seq_id in vquest_detailed_results.keys():
-                vquest_full_results_raw[sample_id][seq_id][
-                    "messages"
-                ] = vquest_detailed_results[seq_id]
-                subset_id = None
-                for subset in cll_app.config["CLL_SUBSETS"]:
-                    if subset in vquest_detailed_results[seq_id]["CLL Subset Summary"]:
-                        subset_id = subset
-                        break
-
-                vquest_full_results_raw[sample_id][seq_id]["summary"][
-                    "CLL subset"
-                ] = subset_id
-
-                if selected_sequences_merging_rate is not None:
+        if not errors and vquest_full_results_raw is not None:
+            for seq_id in vquest_full_results_raw[sample_id].keys():
+                if (
+                    seq_id != "parameters"
+                    and selected_sequences_merging_rate is not None
+                ):
                     vquest_full_results_raw[sample_id][seq_id]["summary"][
                         "Merge Count"
                     ] = int(selected_sequences_merging_rate[seq_id][0])
@@ -442,7 +419,6 @@ def vquest_results(sample_id: str):
                 vquest_full_results_raw,
                 submission_id,
                 vquest_full_obj.vquest_results_file,
-                vquest_detailed_obj.vquest_results_file,
             ):
                 SampleListController.sample_handler.update_document(_id, "vquest", True)
         else:
@@ -473,7 +449,7 @@ def save_comment(sample_id: str, submission_id: str):
     _id = request.args.get("_id")
     report_summary = request.form.get("report_summary")
     _type = request.form.get("_type")
-    if _type == "save_comment" and len(report_summary) > 1:
+    if _type == "save_comment" and len(report_summary) > 0:
         new_comment = {}
         new_comment["id"] = ObjectId()
         new_comment["text"] = request.form.get("report_summary")
@@ -533,10 +509,10 @@ def update_comment_status(sample_id: str, submission_id: str):
 
     else:
         cll_app.logger.warning(
-            "The current User is not authorized to modify the data based on the group policy."
+            "The current user is not authorized to modify the data based on the group policy."
         )
         flash(
-            "The current User is not authorized to modify the data based on the group policy.",
+            "The current user is not authorized to modify the data based on the group policy.",
             "warning",
         )
 
@@ -562,7 +538,6 @@ def cll_report(sample_id: str):
     ) or ResultsController.get_submission_id(_id, num=-1)
 
     sample = ReportController.sample_handler.get_sample(_id)
-    report_with_vquest = sample.get("is_eligible_for_vquest", False)
 
     if request.method == "POST":
         report_summary = request.form.get("report_summary")
@@ -580,7 +555,7 @@ def cll_report(sample_id: str):
         results_comments = ReportController.get_comments_for_report(_id, submission_id)
 
         if results_parameters is None or results_summary is None:
-            ReportController.sample_handler.update_document(_id, "vquest", True)
+            ReportController.sample_handler.update_document(_id, "vquest", False)
             flash(f"No Results in the database for the sample {sample_id}", "error")
             cll_app.logger.error(
                 f"No Results in the database for the sample {sample_id}"
@@ -588,83 +563,90 @@ def cll_report(sample_id: str):
             return render_template(
                 "errors.html",
                 errors=[
-                    f"There is some issue with the information in the database. It looks it is incorrect. The results are not avalible in the database"
+                    f"There is some issue with the information in the database. It looks it is incorrect. The results are not available in the database"
                 ],
                 sample_id=sample_id,
                 _id=_id,
             )
 
-        pdf_file_path = ReportController.get_pdf_filename(_id, submission_id)
-        pdf_file_name = os.path.basename(pdf_file_path)
-        report_id = pdf_file_name.replace(".pdf", "")
+        logo_base64 = create_base64_logo(cll_app.config["LOGO_PATH"])
+        antibody_base64 = create_base64_logo(cll_app.config["ANTIBODY_LOGO_PATH"])
+        html_file_path = ReportController.get_html_filename(_id, submission_id)
+        html_file_name = os.path.basename(html_file_path)
+        report_id = html_file_name.replace(".html", "")
 
         report_docs = ReportController.sample_handler.get_cll_reports(
             _id
         )  # for sample collections
 
-        if request.args.get("pdf") == "1" or _type == "preview":
-            # Generate PDF
-            report_date = datetime.now()
-            try:
-                clarity_data = clarity_api.sample_udfs_from_sample_id(
-                    sample["clarity_id"]
-                )
+        report_date = datetime.now()
+
+        # To show a preview sign in the report
+        if _type == "preview":
+            preview = True
+        else:
+            preview = False
+
+        try:
+            if _type == "preview" or _type == "export":
                 html = render_template(
-                    "cll_report_pdf.html",
-                    # results_parameters=results_parameters,
+                    "cll_report.html",
                     results_summary=results_summary,
                     sample_id=sample_id,
                     report_id=report_id,
                     report_summary=report_summary,
-                    report_with_vquest=report_with_vquest,
                     report_date=str(report_date).split(" ")[0],
-                    clarity_data={} if clarity_data is None else clarity_data,
+                    logo_base64=logo_base64,
+                    antibody_base64=antibody_base64,
+                    submission_id=submission_id,
+                    sample=sample,
+                    preview=preview,
                 )
 
-                if _type == "finalize":
-                    pdf = HTML(string=html).write_pdf()
-                    with open(pdf_file_path, "wb") as pdf_out:
-                        pdf_out.write(pdf)
-                    report_docs[report_id] = {}
-                    report_docs[report_id]["path"] = pdf_file_path
-                    report_docs[report_id]["date_created"] = report_date
-                    report_docs[report_id]["submission_id"] = submission_id
-                    report_docs[report_id]["created_by"] = current_user.get_fullname()
-                    report_docs[report_id]["hidden"] = False
-                    report_docs[report_id]["hidden_by"] = None
-                    report_docs[report_id]["time_hidden"] = None
-                    report_docs[report_id]["summary"] = report_summary
-                    ReportController.sample_handler.update_document(_id, "report", True)
-                    ReportController.sample_handler.update_document(
-                        _id, "cll_reports", report_docs
-                    )
+            if _type == "preview":
+                return html
+            elif _type == "export":
+                with open(html_file_path, "w") as html_out:
+                    html_out.write(html)
 
-                    flash(
-                        f"Report with id: {report_id} save to the disk and added to the database",
-                        "success",
-                    )
-                    return redirect(url_for("main_bp.cll_genie"))
-                # Render it!
-                return render_pdf(HTML(string=html))
-            except Exception as e:
-                flash(f"Report cannot be created", "error")
-                cll_app.logger.error(f"Report cannot be created due to error: {str(e)}")
+                report_docs[report_id] = {}
+                report_docs[report_id]["path"] = html_file_path
+                report_docs[report_id]["date_created"] = report_date
+                report_docs[report_id]["submission_id"] = submission_id
+                report_docs[report_id]["created_by"] = current_user.get_fullname()
+                report_docs[report_id]["hidden"] = False
+                report_docs[report_id]["hidden_by"] = None
+                report_docs[report_id]["time_hidden"] = None
+                report_docs[report_id]["summary"] = report_summary
+                ReportController.sample_handler.update_document(_id, "report", True)
+                ReportController.sample_handler.update_document(
+                    _id, "cll_reports", report_docs
+                )
+
+                flash(
+                    f"Report with id: {report_id} save to the disk and added to the database",
+                    "success",
+                )
+                return redirect(url_for("main_bp.cll_genie"))
+            else:
                 return render_template(
-                    "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
+                    "vquest_results.html",
+                    results_parameters=results_parameters,
+                    results_summary=results_summary,
+                    sample_id=sample_id,
+                    _id=_id,
+                    report_id=report_id,
+                    report_summary=report_summary,
+                    results_comments=results_comments,
+                    submission_id=submission_id,
                 )
-        else:
+        except Exception as e:
+            flash(f"Report cannot be created", "error")
+            cll_app.logger.error(f"Report cannot be created due to error: {str(e)}")
             return render_template(
-                "vquest_results.html",
-                results_parameters=results_parameters,
-                results_summary=results_summary,
-                sample_id=sample_id,
-                _id=_id,
-                report_id=report_id,
-                report_summary=report_summary,
-                results_comments=results_comments,
-                report_with_vquest=report_with_vquest,
-                submission_id=submission_id,
+                "errors.html", errors=[str(e)], sample_id=sample_id, _id=_id
             )
+
     else:
         flash(
             f"Cannot create report, Vquest results are not available, please run your analysis",
@@ -678,35 +660,37 @@ def cll_report(sample_id: str):
 def negative_report(sample_id: str):
     _id = request.args.get("_id")
     sample = ReportController.sample_handler.get_sample(_id)
+    report_summary = ""
+    results_summary = None
 
     negative_report_status = ReportController.sample_handler.negative_report_status(_id)
-    pdf_file_path = ReportController.get_pdf_filename(_id, 0, neg=True)
-    pdf_file_name = os.path.basename(pdf_file_path)
-    report_id = pdf_file_name.replace(".pdf", "")
+    html_file_path = ReportController.get_html_filename(_id, 0, neg=True)
+    html_file_name = os.path.basename(html_file_path)
+    report_id = html_file_name.replace(".html", "")
     report_date = datetime.now()
-    report_summary = "Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat."
+
+    if request.method == "POST":
+        report_summary = request.form.get("negative_report_comment")
 
     if not negative_report_status:
         try:
-            clarity_data = clarity_api.sample_udfs_from_sample_id(sample["clarity_id"])
             html = render_template(
-                "cll_report_pdf.html",
+                "cll_report.html",
                 sample_id=sample_id,
                 report_id=report_id,
-                report_with_vquest=False,
                 report_summary=report_summary,
+                results_summary=results_summary,
                 report_date=str(report_date).split(" ")[0],
-                clarity_data={} if clarity_data is None else clarity_data,
             )
 
-            pdf = HTML(string=html).write_pdf()
-            with open(pdf_file_path, "wb") as pdf_out:
-                pdf_out.write(pdf)
+            with open(html_file_path, "w") as html_out:
+                html_out.write(html)
 
             update_neg_report = {
                 "report_id": report_id,
-                "path": pdf_file_path,
+                "path": html_file_path,
                 "date_created": report_date,
+                "summary": report_summary,
                 "created_by": current_user.get_fullname(),
             }
 

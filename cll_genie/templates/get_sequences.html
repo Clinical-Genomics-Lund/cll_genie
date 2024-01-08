@@ -112,28 +112,43 @@ scripts %}
 {% endif %}
 <br />
 {% if html_table is not none %}
-<form name="vquest_analysis_router" method="POST" enctype="multipart/form-data" id="vquest_analysis_router">
-  <div class="form-group">
-    <div class="df-table-class">{{ html_table|safe }}</div>
-  </div>
+  <form name="vquest_analysis_router" method="POST" enctype="multipart/form-data" id="vquest_analysis_router">
+    <div class="form-group">
+      <div class="df-table-class">{{ html_table|safe }}</div>
+    </div>
+    <br /><br />
+    <center>
+    {% if filter_message is none%}
+      <button type="submit" id="vquestanalysis" formaction="{{ url_for('main_bp.vquest_analysis', sample_id=sample_id, _id=_id) }}" onclick="return validateForm('vquest_analysis_router');">Proceed to IMGT V-Quest Configuration</button>
+    {% elif filter_message is not none%}
+      <p><b>{{ filter_message|safe }}</b></p>
+      <br /><br />
+    {% endif %} 
+  </form>
+
+<button type="button" id="showNRCommentForm">Create Cll No-Result Report</button>  
+
   <br /><br />
+  </center>
+
+
+  <div id="NRCommentForm" style="display: none;">
+    <form name="NRCommentForm" method="POST" enctype="multipart/form-data" action="{{ url_for('main_bp.negative_report', sample_id=sample_id, _id=_id) }}">
+      <center>
+      <textarea style="resize: vertical; width: 70%; height: 60px; white-space: pre-line; text-align:justify" name="negative_report_comment" placeholder="Enter your comment">Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat.</textarea><br>
+          <button style="margin-bottom: 10px; padding-left: 10px; padding-right: 10px;padding-top: 2px; padding-bottom: 2px; align: center" type="submit" id="NRCommentButton"  onclick="return confirm('Are you sure, you want to create No result report for the sample: {{sample_id}}?')"><p style="font-size: 8pt"><b>Submit</b></p></button>
+        </center>
+    
+    </form>
+  </div>
+
 {% endif %}
 
 
-{% if filter_message is none and html_table is not none %}
-  <center>
-    <button type="submit" formaction="{{ url_for('main_bp.vquest_analysis', sample_id=sample_id, _id=_id) }}" onclick="return validateForm('vquest_analysis_router');">Proceed to IMGT V-Quest Configuration</button>
-    <button type="submit" formaction="{{ url_for('main_bp.negative_report', sample_id=sample_id, _id=_id) }}" onclick="confirm('Are you sure, you want to create No result report for the sample: {{sample_id}}?')">Create Cll No-Result Report</button>
-  </center>
-  <br /><br />
-  {% elif filter_message is not none and filter_message != 'no' and html_table
-  is not none %}
-    <center>
-      <p><b>{{ filter_message|safe }}</b></p>
-      <br /><br />
-      <button type="submit" formaction="{{ url_for('main_bp.negative_report', sample_id=sample_id, _id=_id) }}" onclick="confirm('Are you sure, you want to create No result report for the sample: {{sample_id}}?')">Create Cll No-Result Report</button>
-    </center>
-  <br /><br />
-  {% endif %}
-</form>
+<script>
+  document.getElementById("showNRCommentForm").addEventListener("click", function () {
+    document.getElementById("NRCommentForm").style.display = "block";
+  });
+</script>
+
 {% endblock %}
