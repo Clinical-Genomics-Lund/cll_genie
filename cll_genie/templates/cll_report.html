@@ -55,7 +55,7 @@
 {{ report_summary|replace('\n', '<br>')|safe }}<br><br>
 </span>
 
-{% if report_with_vquest %}
+{% if results_summary is not none %}
   <div style="page-break-after: always;"></div>
   <div class="report_div" style="page-break-inside: avoid;">
   <span class="report_header">Detaljerade Analysresultat</span>

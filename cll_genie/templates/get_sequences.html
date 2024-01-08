@@ -126,9 +126,8 @@ scripts %}
     {% endif %} 
   </form>
 
-  {% if html_table is not none %}
-    <button type="button" id="showNRCommentForm">Create Cll No-Result Report</button>  
-  {% endif %} 
+<button type="button" id="showNRCommentForm">Create Cll No-Result Report</button>  
+
   <br /><br />
   </center>
 
@@ -136,7 +135,7 @@ scripts %}
   <div id="NRCommentForm" style="display: none;">
     <form name="NRCommentForm" method="POST" enctype="multipart/form-data" action="{{ url_for('main_bp.negative_report', sample_id=sample_id, _id=_id) }}">
       <center>
-      <textarea style="resize: vertical; width: 70%; height: 60px; white-space: pre-line; text-align:justify" name="negative_report_comment" placeholder="Enter your comment"></textarea><br>
+      <textarea style="resize: vertical; width: 70%; height: 60px; white-space: pre-line; text-align:justify" name="negative_report_comment" placeholder="Enter your comment">Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat.</textarea><br>
           <button style="margin-bottom: 10px; padding-left: 10px; padding-right: 10px;padding-top: 2px; padding-bottom: 2px; align: center" type="submit" id="NRCommentButton"  onclick="return confirm('Are you sure, you want to create No result report for the sample: {{sample_id}}?')"><p style="font-size: 8pt"><b>Submit</b></p></button>
         </center>
     

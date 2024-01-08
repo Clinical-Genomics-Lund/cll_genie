@@ -32,7 +32,7 @@
           <td width='50%'><b>Sample ID</b></td>
           <td><i>{{ sample_id }}</i></td>
         </tr>
-        {% if report_with_vquest and results_parameters is not none %}
+        {% if results_parameters is not none %}
           {% for parameter_key, parameter_value in results_parameters.items() %}
           <tr>
             <td><b>{{ parameter_key }}</b></td>
@@ -50,7 +50,7 @@
     <br /><hr>
     <center><h2>IMGT/V-QUEST Results Summary</h2></center>
     <br />
-    {% if report_with_vquest and results_summary is not none %}
+    {% if results_summary is not none %}
       {% set seq_count = 1 %}
       {% for seq_id, seq_value in results_summary.items() %} 
         {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 

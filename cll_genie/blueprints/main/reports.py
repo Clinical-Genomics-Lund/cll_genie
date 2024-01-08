@@ -131,12 +131,16 @@ class ReportController:
         )
 
     @staticmethod
-    def get_report_counts_per_submission(_id: str) -> dict:
+    def get_report_counts_per_submission(_id: str, results: dict = None) -> dict:
         """
         Return the number of reports for all the submissions for a given id or None iff not found
         """
         submissions_counts = {}
-        results = ReportController.results_handler.get_results(_id).get("results", {})
+
+        if results is None:
+            results = ReportController.results_handler.get_results(_id).get(
+                "results", {}
+            )
 
         if results:
             for sid in results.keys():
