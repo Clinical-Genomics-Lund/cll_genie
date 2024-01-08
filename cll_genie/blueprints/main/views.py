@@ -388,27 +388,26 @@ def vquest_results(sample_id: str):
         }
 
         # run full analysis and download zip results and process them
-        vquest_full_obj = VQuest(
+        vquest_obj = VQuest(
             vquest_payload,
             results_dir,
             sample_id,
-            "full",
             submission_id,
         )
 
-        vquest_full_results_raw, errors = vquest_full_obj.run_vquest()
+        vquest_results_raw, errors = vquest_obj.run_vquest()
 
         # merged vquest results to insert into the database
-        if not errors and vquest_full_results_raw is not None:
-            for seq_id in vquest_full_results_raw[sample_id].keys():
+        if not errors and vquest_results_raw is not None:
+            for seq_id in vquest_results_raw[sample_id].keys():
                 if (
                     seq_id != "parameters"
                     and selected_sequences_merging_rate is not None
                 ):
-                    vquest_full_results_raw[sample_id][seq_id]["summary"][
+                    vquest_results_raw[sample_id][seq_id]["summary"][
                         "Merge Count"
                     ] = int(selected_sequences_merging_rate[seq_id][0])
-                    vquest_full_results_raw[sample_id][seq_id]["summary"][
+                    vquest_results_raw[sample_id][seq_id]["summary"][
                         "Total Reads Per"
                     ] = round(
                         float(selected_sequences_merging_rate[seq_id][1].strip("/")), 2
@@ -416,9 +415,9 @@ def vquest_results(sample_id: str):
 
             if ResultsController.save_results_to_db(
                 _id,
-                vquest_full_results_raw,
+                vquest_results_raw,
                 submission_id,
-                vquest_full_obj.vquest_results_file,
+                vquest_obj.vquest_results_file,
             ):
                 SampleListController.sample_handler.update_document(_id, "vquest", True)
         else:
