@@ -440,6 +440,22 @@ def vquest_results(sample_id: str):
         return redirect(url_for("main_bp.get_sequences", sample_id=sample_id))
 
 
+def comment_dict(summary: str) -> dict:
+    """
+    Create a dictionary for the comment to be saved in the database
+    """
+
+    new_comment = {}
+    new_comment["id"] = ObjectId()
+    new_comment["text"] = summary
+    new_comment["time_created"] = datetime.now()
+    new_comment["author"] = current_user.get_fullname()
+    new_comment["hidden"] = False
+    new_comment["hidden_by"] = ""
+    new_comment["time_hidden"] = ""
+    return new_comment
+
+
 @main_bp.route(
     "/save_comment/<string:sample_id>/<string:submission_id>", methods=["POST"]
 )
@@ -449,14 +465,7 @@ def save_comment(sample_id: str, submission_id: str):
     report_summary = request.form.get("report_summary")
     _type = request.form.get("_type")
     if _type == "save_comment" and len(report_summary) > 0:
-        new_comment = {}
-        new_comment["id"] = ObjectId()
-        new_comment["text"] = request.form.get("report_summary")
-        new_comment["time_created"] = datetime.now()
-        new_comment["author"] = current_user.get_fullname()
-        new_comment["hidden"] = False
-        new_comment["hidden_by"] = ""
-        new_comment["time_hidden"] = ""
+        new_comment = comment_dict(report_summary)
 
         if ResultsController.save_comments(_id, submission_id, new_comment):
             flash(f"comment saved", "success")
@@ -621,6 +630,13 @@ def cll_report(sample_id: str):
                 ReportController.sample_handler.update_document(
                     _id, "cll_reports", report_docs
                 )
+
+                if len(report_summary) > 0:
+                    new_comment = comment_dict(report_summary)
+                    if ResultsController.save_comments(_id, submission_id, new_comment):
+                        pass
+                    else:
+                        cll_app.logger.error(f"There was some error saving the comment")
 
                 flash(
                     f"Report with id: {report_id} save to the disk and added to the database",

@@ -66,7 +66,7 @@ class User:
 
         if cll_app.debug:
             cll_app.logger.debug("DEBUG mode ON. Authorizing sample edit.")
-            return True
+            permission_granted = True
 
         return permission_granted
 
