@@ -47,7 +47,6 @@ class ResultsController:
                 "_id": ObjectId(_id),
                 "name": sample_name,
                 "results": results,
-                "cll_reports": None,
             }
             try:
                 result = collection.insert_one(query_insert)
@@ -149,15 +148,19 @@ class ResultsController:
             ResultsController.sample_handler.get_submission_reports(_id, submission_id)
         )
         try:
-            if submission_results_count > 1:
+            if submission_results_count > 0:
                 ResultsController.results_handler.delete_submission_results(
                     _id, submission_id
                 )
+                if ResultsController.results_handler.get_submission_count(_id) < 1:
+                    ResultsController.results_handler.delete_document(_id)
+
             else:
                 ResultsController.results_handler.delete_document(_id)
 
-            if cll_submission_reports is not None or cll_submission_reports is not []:
+            if cll_submission_reports:
                 for report_id in cll_submission_reports:
+                    ReportController.delete_cll_report_local(_id, report_id)
                     ReportController.delete_cll_report(_id, report_id)
             return True
         except PyMongoError as e:

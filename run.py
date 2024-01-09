@@ -6,7 +6,7 @@ if cll_app.config["APP_VERSION"] is None:
     cll_app.config["APP_VERSION"] = __version__
 
 if __name__ == "__main__":
-    # cll_app.run(debug=True) # Main
+    # cll_app.run() # Main
     cll_app.run(debug=True, host="0.0.0.0", port=5000)  # Dev
 
 

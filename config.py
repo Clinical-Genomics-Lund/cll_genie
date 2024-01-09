@@ -20,9 +20,6 @@ class Config:
 
     # Set from ENV:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "notsosecret"
-    CLARITY_USER = os.getenv("CLARITY_USER", None)
-    CLARITY_PASSWORD = os.getenv("CLARITY_PASSWORD", None)
-    CLARITY_HOST = os.getenv("CLARITY_HOST", None)
 
     # Mongo database details
     DB_NAME = os.getenv("DB_NAME", "cll_genie")
@@ -82,7 +79,7 @@ class Config:
 
 class ProductionConfig(Config):
     LOG_FILE = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "logs", "main_logs.log"
+        os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_prod.log"
     )
     LOG_LEVEL = "INFO"
 
@@ -91,8 +88,8 @@ class DevelopmentConfig(Config):
     # CLARITY_HOST="http://127.0.0.1/api/v2/"
     DEBUG = True
     SECRET_KEY = "secretkeynotsodisguised"
-    LOG_FILE = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "logs", "dev_logs.log"
+    _FILE = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_dev.log"
     )
     LOG_LEVEL = "DEBUG"
 

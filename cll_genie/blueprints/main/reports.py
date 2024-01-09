@@ -318,12 +318,42 @@ class ReportController:
             return False
 
     @staticmethod
+    def delete_cll_report_local(_id: str, report_id: str) -> bool:
+        """
+        Delete Cll Report for a given ID from local path
+        """
+        sample = ReportController.sample_handler.get_sample(_id)
+        report = sample.get("cll_reports").get(report_id)
+
+        if report is None:
+            cll_app.logger.error(
+                f"Report deletion for the report id {report_id} FAILED as the file does not exist locally"
+            )
+            return False
+
+        report_path = os.path.abspath(report.get("path"))
+
+        try:
+            os.remove(report_path)
+            cll_app.logger.info(
+                f"Report deletion for the report id {report_id} is SUCCESSFUL"
+            )
+            return True
+        except Exception as e:
+            cll_app.logger.error(
+                f"Report deletion for the report id {report_id} at {report_path} FAILED due to error {str(e)}"
+            )
+            return False
+
+    @staticmethod
     def delete_cll_negative_report(_id: str) -> bool:
         """
         Delete Cll Report for a given ID from results and sample collection
         """
         update_instructions = {"$unset": {f"negative_report": ""}}
         sample = ReportController.sample_handler.get_sample(_id)
+
+        ReportController.delete_cll_negative_report_local(sample)
 
         try:
             ReportController.sample_handler.samples_collection().find_one_and_update(
@@ -339,6 +369,33 @@ class ReportController:
             )
             cll_app.logger.debug(
                 f"Report deletion for the report id {sample['name']} FAILED due to error {str(e)} and for the update instructions {pformat(update_instructions)}"
+            )
+            return False
+
+    @staticmethod
+    def delete_cll_negative_report_local(sample: dict) -> bool:
+        """
+        Delete Cll Report for a given ID from local path
+        """
+        negative_report = sample.get("negative_report")
+
+        if negative_report is None:
+            cll_app.logger.error(
+                f"No Results Report deletion for the report id {sample['name']} FAILED as the file does not exist locally"
+            )
+            return False
+
+        report_path = os.path.abspath(negative_report.get("path"))
+
+        try:
+            os.remove(report_path)
+            cll_app.logger.info(
+                f"No Results Report deletion for the report id {sample['name']} is SUCCESSFUL"
+            )
+            return True
+        except Exception as e:
+            cll_app.logger.error(
+                f"No Results Report deletion for the report id {sample['name']} at {report_path} FAILED due to error {str(e)}"
             )
             return False
 
@@ -397,7 +454,6 @@ class ReportController:
             report for report in report_docs.keys() if not report_docs[report]["hidden"]
         ]
         unhidden_reports_ids.sort()
-        print(unhidden_reports_ids)
 
         if unhidden_reports_ids is not None or unhidden_reports_ids is not []:
             if report_id is None or report_id == "":
@@ -425,5 +481,4 @@ class ReportController:
                 filepath = None
             else:
                 filepath = os.path.abspath(neg_report_docs["path"])
-        print(filepath)
         return filepath

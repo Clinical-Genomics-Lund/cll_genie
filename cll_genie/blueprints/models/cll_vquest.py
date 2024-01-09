@@ -4,6 +4,8 @@ from pymongo.errors import PyMongoError
 from bson.objectid import ObjectId
 from pprint import pformat
 from copy import deepcopy
+import os
+import shutil
 
 
 class ResultsHandler:
@@ -91,9 +93,34 @@ class ResultsHandler:
         """
         if self.submission_result_exists(_id, submission_id):
             results = self.get_results(_id)["results"]
+            local_results_path = os.path.dirname(
+                results[submission_id]["results_zip_file"]
+            )[: -len("/vquest")]
+            self.delete_submission_results_locally(local_results_path)
             results.pop(submission_id)
             return self.update_document(_id, "results", results)
         else:
+            return False
+
+    def delete_submission_results_locally(self, local_path: str) -> bool:
+        """
+        Delete the submission results for a given id and submission id and return True if successful or False otherwise
+        """
+        if local_path and os.path.exists(local_path):
+            try:
+                # Check if it's a file or directory and delete accordingly
+                if os.path.isfile(local_path):
+                    os.remove(local_path)
+                elif os.path.isdir(local_path):
+                    shutil.rmtree(local_path)
+                return True
+            except OSError as e:
+                cll_app.logger.error(
+                    f"Deletion os submission results at {local_path} failed with exception: {e}"
+                )
+                return False
+        else:
+            cll_app.logger.error("Invalid path provided or path does not exist.")
             return False
 
     def update_document(self, _id, key, value) -> bool:
