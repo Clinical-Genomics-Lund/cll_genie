@@ -28,6 +28,7 @@ services:
       - "./config.py:/cll_genie/config.py"
       - "./version.py:/cll_genie/version.py"
       - "/data/lymphotrack/cll_results/:/cll_genie/results/"
+      - "/data/lymphotrack/cll_results_dev/:/cll_genie/results_dev/"
       - "/data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/"
       - "/data/lymphotrack/logs:/cll_genie/logs"
     command: "python3 /cll_genie/wsgi.py"

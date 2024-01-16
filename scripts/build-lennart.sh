@@ -25,10 +25,11 @@ docker run \
        --dns "10.212.226.10" \
        --name cll_genie_app \
        -v /data/lymphotrack/cll_results/:/cll_genie/results/ \
+       -v /data/lymphotrack/cll_results_dev/:/cll_genie/results_dev/ \
        -v /data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/ \
        -v /data/lymphotrack/logs:/cll_genie/logs \
        -d \
        "cll_genie:$version"
 
 
-#docker run -e DB_HOST='172.17.0.1' -e CLARITY_USER=$CLARITY_USER -e CLARITY_PASSWORD=$CLARITY_PASSWORD -e CLARITY_HOST=$CLARITY_HOST -e DB_HOST=$DB_HOST -e DB_PORT=$DB_PORT -e FLASK_DEBUG=1 -e SCRIPT_NAME=$SCRIPT_NAME -e LOG_LEVEL="DEBUG" -p 5813:5000 --name cll_genie_app -v /data/lymphotrack/cll_results/:/cll_genie/results/ -v /data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/ -v /data/lymphotrack/logs:/cll_genie/logs "cll_genie:1.0.0"
+#docker run -e DB_HOST='172.17.0.1' -e CLARITY_USER=$CLARITY_USER -e CLARITY_PASSWORD=$CLARITY_PASSWORD -e CLARITY_HOST=$CLARITY_HOST -e DB_HOST=$DB_HOST -e DB_PORT=$DB_PORT -e FLASK_DEBUG=1 -e SCRIPT_NAME=$SCRIPT_NAME -e LOG_LEVEL="DEBUG" -p 5813:5000 --name cll_genie_app -v /data/lymphotrack/cll_results/:/cll_genie/results/  -v /data/lymphotrack/cll_results_dev/:/cll_genie/results_dev/ -v /data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/ -v /data/lymphotrack/logs:/cll_genie/logs "cll_genie:1.0.0"

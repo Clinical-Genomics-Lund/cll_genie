@@ -88,10 +88,16 @@ class DevelopmentConfig(Config):
     # CLARITY_HOST="http://127.0.0.1/api/v2/"
     DEBUG = True
     SECRET_KEY = "secretkeynotsodisguised"
-    _FILE = os.path.join(
+    LOG_FILE = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_dev.log"
     )
     LOG_LEVEL = "DEBUG"
+    ANALYSIS_OUTDIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_analysis"
+    )
+    REPORT_OUTDIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_reports"
+    )
 
 
 class TestConfig(Config):

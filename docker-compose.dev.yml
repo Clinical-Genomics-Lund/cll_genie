@@ -10,7 +10,7 @@ services:
       dockerfile: Dockerfile.dev
       network: host
       target: cll_genie_app_dev
-    image: cll_genie:0.0.1_dev
+    image: cll_genie:0.0.3_dev
     network_mode: bridge
     ports:
       - "5814:8000"
@@ -29,6 +29,7 @@ services:
       - "./config.py:/cll_genie/config.py"
       - "./version.py:/cll_genie/version.py"
       - "/data/lymphotrack/cll_results/:/cll_genie/results/"
+      - "/data/lymphotrack/cll_results_dev/:/cll_genie/results_dev/"
       - "/data/lymphotrack/results/lymphotrack_dx/:/data/lymphotrack/results/lymphotrack_dx/"
       - "/data/lymphotrack/logs:/cll_genie/logs"
     command: "python3 /cll_genie/wsgi.py"
