@@ -33,12 +33,12 @@ class Config:
     # All users granted permission to edit if DEBUG = True
     CLL_GENIE_SUPER_PERMISSION_GROUPS = ["admin", "lymphotrack_admin"]
 
-    # Report and analysis setting
+    # Results and analysis settings
     ANALYSIS_OUTDIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "results", "saved_cll_analysis"
+        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_analysis"
     )
     REPORT_OUTDIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "results", "saved_cll_reports"
+        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_reports"
     )
 
     # REPORT_OUTDIR = "/data/bnf/dev/ram/Pipelines/Web_Developement/cll_genie/results/saved_cll_reports"
@@ -83,21 +83,22 @@ class ProductionConfig(Config):
     )
     LOG_LEVEL = "INFO"
 
+    # Report and analysis setting
+    ANALYSIS_OUTDIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "results", "saved_cll_analysis"
+    )
+    REPORT_OUTDIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "results", "saved_cll_reports"
+    )
+
 
 class DevelopmentConfig(Config):
-    # CLARITY_HOST="http://127.0.0.1/api/v2/"
     DEBUG = True
     SECRET_KEY = "secretkeynotsodisguised"
     LOG_FILE = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "logs", "cll_genie_dev.log"
     )
     LOG_LEVEL = "DEBUG"
-    ANALYSIS_OUTDIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_analysis"
-    )
-    REPORT_OUTDIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "results_dev", "saved_cll_reports"
-    )
 
 
 class TestConfig(Config):

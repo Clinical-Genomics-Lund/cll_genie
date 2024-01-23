@@ -33,8 +33,10 @@ RUN apt update &&\
     pip install --verbose --no-cache-dir --requirement requirements.txt && \ 
     mkdir -p /cll_genie/results/saved_cll_reports && \
     mkdir -p /cll_genie/results/saved_cll_analysis && \
+    mkdir -p /cll_genie/results/clarity_reports && \
     mkdir -p /cll_genie/results_dev/saved_cll_reports && \
     mkdir -p /cll_genie/results_dev/saved_cll_analysis && \
+    mkdir -p /cll_genie/results_dev/clarity_reports && \
     mkdir -p /cll_genie/logs 
 
 
