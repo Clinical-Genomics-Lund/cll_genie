@@ -45,7 +45,7 @@ class ProcessExcel:
 
         Returns:
         - data (pandas.DataFrame or None): The DataFrame containing the data
-          from the file, or None if there was an error.
+        from the file, or None if there was an error.
         """
         data = None
         try:
@@ -92,18 +92,25 @@ class ProcessExcel:
         try:
             if df_no_meta is not None:
                 # Convert numeric columns to numeric data types
-                column_names = df_no_meta.columns.tolist()
-                for col in column_names:
-                    if pd.api.types.is_numeric_dtype(df_no_meta[col]):
-                        df_no_meta[col] = pd.to_numeric(
-                            df_no_meta[col], errors="coerce"
-                        )
+
+                columns_to_numeric = [
+                    "Rank",
+                    "Length",
+                    "Merge count",
+                    "% total reads",
+                    "Cumulative %",
+                    "Mutation rate to partial V-gene (%)",
+                    "V-coverage",
+                ]
+                for col in columns_to_numeric:
+                    df_no_meta[col] = pd.to_numeric(df_no_meta[col], errors="coerce")
 
                 # Filter the data based on the given conditions
 
                 filtered_data = df_no_meta[
-                    df_no_meta["% total reads"] >= self.filtration_cutoff
+                    df_no_meta["% total reads"] >= int(self.filtration_cutoff)
                 ]
+                print(filtered_data)
 
                 if self.is_in_frame != "B":
                     filtered_data = filtered_data[
