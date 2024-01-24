@@ -172,7 +172,7 @@ class ReportController:
             os.makedirs(reports_dir)
 
         if neg:
-            report_id = f"{sample_name}_NO_RESULT"
+            report_id = f"{sample_name}_NR"
             return f"{reports_dir}/{report_id}.html"
         else:
             submission_id = submission_id.replace("submission_", "")
@@ -455,7 +455,7 @@ class ReportController:
         ]
         unhidden_reports_ids.sort()
 
-        if unhidden_reports_ids is not None or unhidden_reports_ids is not []:
+        if unhidden_reports_ids:
             if report_id is None or report_id == "":
                 report_id_show = unhidden_reports_ids[-1]
             elif (
