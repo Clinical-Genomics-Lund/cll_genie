@@ -1,3 +1,5 @@
+#!/data/bnf/dev/ram/miniconda3/envs/python3.11/bin/python3.11
+
 import os
 import re
 import json
@@ -9,13 +11,44 @@ import argparse
 import colorlog
 
 
-class RegisterLymphotrackSamples:
+class LymphotrackRegister:
+    """
+    Class for registering samples from a Lymphotrack run.
+
+    Attributes:
+        DEFAULT_RUN_STATUS_LOG (str): Default path to the run status log file.
+        DEFAULT_RUNDIR (str): Default path to the run directory.
+        DEFAULT_RESULTSDIR (str): Default path to the results directory.
+        DEFAULT_LOGDIR (str): Default path to the log directory.
+        DEFAULT_LOGFILE (str): Default log file name.
+        RUN_COMPLETED_FILE (str): Name of the file indicating run completion.
+        SAMPLESHEET_NAME (str): Name of the sample sheet file.
+        SAMPLESHEET_KEYWORDS (list): List of keywords to identify relevant samples.
+        EXCLUDE_SAMPLE_TAGS (list): List of sample tags to exclude.
+        DEAFAULT_JSON_STATS_FILE (str): Default path to the demux stats JSON file.
+
+    Methods:
+        __init__(self, RUNDIR=None, RUN=None, RESULTSDIR=None): Initializes the LymphotrackRegister object.
+        get_docs_to_register(self) -> None | dict: Retrieves the documents to register.
+        get_runfolders(RUNDIR=DEFAULT_RUNDIR) -> list: Retrieves the list of run folders.
+        get_excelfiles(RESULTS=DEFAULT_RESULTSDIR) -> list: Retrieves the list of Excel files.
+        get_file_exists_status(check_file: str) -> bool: Checks if a file exists.
+        check_valid_file(self, samplesheet: str) -> bool: Checks if a file is valid.
+        get_runs_log(logs_file) -> dict: Retrieves the log of runs.
+        check_string_in_file(self, file_path) -> bool: Checks if a string is present in a file.
+        get_samplesheet_data(self, samplesheet: str) -> list: Retrieves the data from the sample sheet.
+        extract_sample_elements(self, samplesheet_data: str) -> dict: Extracts sample elements from the sample sheet data.
+        get_demux_stats(self): Retrieves the demux stats.
+        get_documents_lists(self, stats_dict, clarity_ids_dict, runfolder_path, run_number, flowcell, sequencer_type) -> list: Retrieves the list of documents to register.
+    """
+
+    DEFAULT_RUN_STATUS_LOG = "/data/lymphotrack/logs/register_logs/MiSeq.run_status.log"
     DEFAULT_RUNDIR = "/data/lymphotrack/runs/CLL_Test/runs"
     DEFAULT_RESULTSDIR = "/data/lymphotrack/results/lymphotrack_dx/CLLgenietest_231222"
     DEFAULT_LOGDIR = "/data/lymphotrack/logs/register_logs"
     DEFAULT_LOGFILE = f"cll_genie.{datetime.datetime.now():%Y%m%d%H%M%s}.log"
-    DEFAULT_REGISTERED_FILE_OUT_NAME = "lymphotrack_samples_registered"
-    DEFAULT_QC_REGISTERED_FILE_OUT_NAME = "lymphotrack_qc_registered"
+    RUN_COMPLETED_FILE = "RTAComplete.txt"
+    SAMPLESHEET_NAME = "SampleSheet.csv"
     SAMPLESHEET_KEYWORDS = [
         "lymphotrack",
         "Lymphotrack",
@@ -28,12 +61,13 @@ class RegisterLymphotrackSamples:
         "IGH",
     ]
     EXCLUDE_SAMPLE_TAGS = ["POS", "NEG", "IGHSHM"]
+    DEAFAULT_JSON_STATS_FILE = "/Data/Intensities/BaseCalls/Stats/Stats.json"
 
     def __init__(self, RUNDIR=None, RUN=None, RESULTSDIR=None):
         if RUNDIR:
             self.RUNDIR = RUNDIR
         else:
-            self.RUNDIR = RegisterLymphotrackSamples.DEFAULT_RUNDIR
+            self.RUNDIR = LymphotrackRegister.DEFAULT_RUNDIR
 
         if RUN:
             self.RUN = RUN
@@ -41,24 +75,17 @@ class RegisterLymphotrackSamples:
             self.RUN = None
 
         if self.RUN:
-            self.run_folder_full_path = f"{self.RUNDIR}/{self.RUN}"
-            (
-                self.lymphotrack_registered_file,
-                self.lymphotrack_qc_registered_file,
-                self.sample_sheet,
-                self.demux_stats_json,
-            ) = self.get_filenames(self.run_folder_full_path)
+            self.sample_sheet = f"{self.RUN}/{LymphotrackRegister.SAMPLESHEET_NAME}"
+            self.demux_stats_json = (
+                f"{self.RUN}/{LymphotrackRegister.DEAFAULT_JSON_STATS_FILE}"
+            )
         else:
-            self.run_folder_full_path = (
-                self.lymphotrack_registered_file
-            ) = (
-                self.lymphotrack_qc_registered_file
-            ) = self.sample_sheet = self.demux_stats_json = None
+            self.sample_sheet = self.demux_stats_json = None
 
         if RESULTSDIR:
             self.RESULTSDIR = RESULTSDIR
         else:
-            self.RESULTSDIR = RegisterLymphotrackSamples.DEFAULT_RESULTSDIR
+            self.RESULTSDIR = LymphotrackRegister.DEFAULT_RESULTSDIR
 
         self.db_connection = (
             MongoDBConnection()
@@ -67,75 +94,45 @@ class RegisterLymphotrackSamples:
         self.logger = logging.getLogger(__name__)  # Create a logger instance
 
     def get_docs_to_register(self) -> None | dict:
-        is_lymphotrack_registered = RegisterLymphotrackSamples.get_file_exists_status(
-            self.lymphotrack_registered_file
+        self.logger.info(
+            f"Registering samples from the run {self.RUN} with the sample sheet {self.sample_sheet}"
         )
 
-        if not is_lymphotrack_registered:
-            samplesheet_exits, is_samplesheet_valid = self.check_valid_file(
-                self.sample_sheet
-            )
+        sample_sheet_data, sequencer = self.get_samplesheet_data(self.sample_sheet)
+        self.logger.debug(
+            f"Samples from the run {self.RUN}, samplesheet data: {sample_sheet_data}"
+        )
+        self.logger.debug(
+            f"Samples from the run {self.RUN}, sequencer Info: {sequencer}"
+        )
 
-        else:
-            self.logger.warning(
-                f"Samples are already registered for the runId {self.RUN}."
-            )
-            samplesheet_exits = is_samplesheet_valid = False
+        sample_elements = self.extract_sample_elements(sample_sheet_data)
+        self.logger.debug(
+            f"Samples from the run {self.RUN}, sample elements data: {sample_elements}"
+        )
 
-        if samplesheet_exits and is_samplesheet_valid:
-            self.logger.info(
-                f"Samples from the run {self.RUN} will be registered in the database"
-            )
+        demux_stats, run_number, flowcell = self.get_demux_stats()
 
-            sample_sheet_data, sequencer = self.get_samplesheet_data(self.sample_sheet)
-            self.logger.debug(
-                f"Samples from the run {self.RUN}, samplesheet data: {sample_sheet_data}"
-            )
-            self.logger.debug(
-                f"Samples from the run {self.RUN}, sequencer Info: {sequencer}"
-            )
-
-            sample_elements = self.extract_sample_elements(sample_sheet_data)
-            self.logger.debug(
-                f"Samples from the run {self.RUN}, sample elements data: {sample_elements}"
-            )
-
-            demux_stats, run_number, flowcell = self.get_demux_stats()
-
-            if demux_stats is not None:
-                touch(self.lymphotrack_qc_registered_file)
-
-            self.logger.debug(
-                f"Samples from the run {self.RUN}, demux stats data: {demux_stats}"
-            )
-            return self.get_documents_lists(
-                demux_stats,
-                sample_elements,
-                self.RUN,
-                self.run_folder_full_path,
-                run_number,
-                flowcell,
-                sequencer,
-            )
-
-        elif not is_lymphotrack_registered and not samplesheet_exits:
-            self.logger.info(
-                f"Sample Sheet does not exist for the runId {self.RUN}. Still waiting for the status.."
-            )
-            return None
-
-        elif samplesheet_exits and not is_samplesheet_valid:
-            self.logger.info(f"This run is not valid: {self.RUN}")
-            touch(self.lymphotrack_registered_file)
-            touch(self.lymphotrack_qc_registered_file)
-            return None
+        self.logger.debug(
+            f"Samples from the run {self.RUN}, demux stats data: {demux_stats}"
+        )
+        return self.get_documents_lists(
+            demux_stats,
+            sample_elements,
+            self.RUN,
+            run_number,
+            flowcell,
+            sequencer,
+        )
 
     @staticmethod
     def get_runfolders(RUNDIR=DEFAULT_RUNDIR) -> list:
         run_folders = []
         for dir in os.scandir(RUNDIR):
             if dir.is_dir():
-                run_folders.append(dir.name)
+                # print(dir.path)
+                # print(dir.name)
+                run_folders.append(dir.path)
         return run_folders
 
     @staticmethod
@@ -144,7 +141,7 @@ class RegisterLymphotrackSamples:
         for root, dirs, filenames in os.walk(RESULTS):
             for filename in filenames:
                 if filename.endswith(".xlsm") and not os.path.exists(
-                    f"{filename}.registered"
+                    f"{root}/{filename}.registered"
                 ):
                     name = filename.replace(".xlsm", "")
                     if name not in files:
@@ -152,7 +149,7 @@ class RegisterLymphotrackSamples:
                     else:
                         files[name]["excel"] = f"{root}/{filename}"
                 elif filename.endswith(".fastq_indexQ30.tsv") and not os.path.exists(
-                    f"{filename}.registered"
+                    f"{root}/{filename}.registered"
                 ):
                     name = filename.split("_")[0]
                     if name not in files:
@@ -160,18 +157,6 @@ class RegisterLymphotrackSamples:
                     else:
                         files[name]["qc"] = f"{root}/{filename}"
         return files
-
-    def get_filenames(self, dir) -> tuple:
-        return tuple(
-            (
-                f"{dir}/{RegisterLymphotrackSamples.DEFAULT_REGISTERED_FILE_OUT_NAME}",
-                (
-                    f"{dir}/{RegisterLymphotrackSamples.DEFAULT_QC_REGISTERED_FILE_OUT_NAME}"
-                ),
-                f"{dir}/SampleSheet.csv",
-                f"{dir}/Data/Intensities/BaseCalls/Stats/Stats.json",
-            )
-        )
 
     @staticmethod
     def get_file_exists_status(check_file: str) -> bool:
@@ -185,12 +170,23 @@ class RegisterLymphotrackSamples:
         elif not os.path.exists(samplesheet):
             return False, False
 
+    @staticmethod
+    def get_runs_log(logs_file) -> dict:
+        runs_log = {}
+        if not os.path.exists(logs_file):
+            touch(logs_file)
+
+        with open(logs_file, "r") as log_file:
+            for line in log_file:
+                runs_log[line.split("\t")[1]] = line.split("\t")[2:]
+        return runs_log
+
     def check_string_in_file(self, file_path):
         with open(file_path, "r") as file:
             for line in file:
                 if any(
                     search_string in line
-                    for search_string in RegisterLymphotrackSamples.SAMPLESHEET_KEYWORDS
+                    for search_string in LymphotrackRegister.SAMPLESHEET_KEYWORDS
                 ):
                     return True
         return False
@@ -232,8 +228,7 @@ class RegisterLymphotrackSamples:
 
             if (
                 any(
-                    tag in sample_id
-                    for tag in RegisterLymphotrackSamples.SAMPLESHEET_KEYWORDS
+                    tag in sample_id for tag in LymphotrackRegister.SAMPLESHEET_KEYWORDS
                 )
                 and clarity_id is not None
             ):
@@ -287,12 +282,12 @@ class RegisterLymphotrackSamples:
         self,
         stats_dict,
         clarity_ids_dict,
-        runfolder,
         runfolder_path,
         run_number,
         flowcell,
         sequencer_type,
     ) -> list[dict]:
+        runfolder = os.path.basename(runfolder_path)
         merged_dict = deepcopy(clarity_ids_dict)
         for key, value in merged_dict.items():
             if stats_dict is not None and key in stats_dict.keys():
@@ -346,64 +341,14 @@ class RegisterLymphotrackSamples:
         except:
             return False, count
 
-    def update_qc_values(self, collection_name, docs, stats, runnumber):
-        stats_copy = deepcopy(stats)
-
-        self.logger.debug(f"Stats file for the run {self.RUN}: {stats_copy}\n")
-
-        docs_count = len(docs)
-        update_count = 0
-        samples_not_match = []
-
-        try:
-            for doc in docs:
-                if doc["name"] in stats_copy.keys():
-                    target = {"_id": doc["_id"]}
-                    update_instructions = {
-                        "$set": {
-                            "total_raw_reads": stats_copy[doc["name"]],
-                            "run_number": runnumber,
-                        }
-                    }
-                    self.logger.debug(
-                        f"Update instrctions are: {target} {update_instructions}"
-                    )
-                    self.db_connection.update_data(
-                        collection_name, target, update_instructions
-                    )
-
-                    update_count += 1
-                else:
-                    samples_not_match.append(doc["name"])
-
-            success = True
-        except:
-            success = False
-
-        if docs_count > update_count:
-            self.logger.error(
-                "All the documents are not updated, there might be some sample names discrepancy"
-            )
-            self.logger.debug(
-                f"Samples which are not updated for some reason, {samples_not_match}"
-            )
-            self.logger.debug(
-                f"Check the stats file for more information, {self.demux_stats_json}"
-            )
-            success = False
-
-        return success
-
     def update_files(self, collection_name, docs, files_dict, update_file):
         docs_count = len(docs)
         update_count = 0
         sample_not_updated = []
         for doc in docs:
-            print(doc["name"])
             try:
                 if doc["name"] in files_dict.keys():
                     if update_file == "excel":
-                        print("excel yes")
                         file = (
                             files_dict[doc["name"]]["excel"]
                             if "excel" in files_dict[doc["name"]].keys()
@@ -416,15 +361,12 @@ class RegisterLymphotrackSamples:
                             }
                         }
                     elif update_file == "qc":
-                        print("qc yes")
                         file = (
                             files_dict[doc["name"]]["qc"]
                             if "qc" in files_dict[doc["name"]].keys()
                             else None
                         )
-                        print(file)
                         q30_values = self.get_q30_values(file)
-                        print(q30_values)
                         update_instructions = {
                             "$set": {
                                 "lymphotrack_qc_path": file,
@@ -434,7 +376,6 @@ class RegisterLymphotrackSamples:
                                 "q30_per": q30_values[2],
                             }
                         }
-                    print(update_instructions)
                     target = {"_id": doc["_id"]}
                     if file:
                         self.db_connection.update_data(
@@ -443,6 +384,9 @@ class RegisterLymphotrackSamples:
                         touch(f"{file}.registered")
                         self.logger.debug(
                             f"File updating for the query {target}: {update_instructions}"
+                        )
+                        self.logger.info(
+                            f"{update_file} {file} is updated successfully for the sample {doc['name']}"
                         )
                         update_count += 1
                 else:
@@ -474,8 +418,33 @@ class RegisterLymphotrackSamples:
                 q30_per = float(lines[2].split("\t")[1].strip().replace(",", "."))
         return (total_reads, q30_reads, q30_per)
 
+    def update_run_status_log(self, log_file, data):
+        with open(log_file, "a") as log:
+            log.write("\t".join(run_to_log) + "\n")
+
 
 class MongoDBConnection:
+    """
+    A class representing a connection to a MongoDB database.
+
+    Attributes:
+        host (str): The hostname of the MongoDB server.
+        port (int): The port number of the MongoDB server.
+        client: The MongoClient object representing the connection to the MongoDB server.
+        db: The database object representing the connected database.
+        logger: The logger object for logging messages.
+
+    Methods:
+        connect(db): Connects to the specified database.
+        get_client(): Returns the MongoClient object.
+        get_db(): Returns the database object.
+        get_docs(collection_name, query): Retrieves documents from the specified collection based on the given query.
+        insert_data(collection_name, data, overwrite): Inserts data into the specified collection.
+        update_data(collection_name, target, update_data): Updates documents in the specified collection based on the given target and update data.
+        drop_document(_id, collection): Deletes a document from the specified collection based on the given document ID.
+        is_existing(collection, doc_filter): Checks if a document exists in the specified collection based on the given filter.
+    """
+
     def __init__(self, host="localhost", port=27017):
         self.host = host
         self.port = port
@@ -578,13 +547,13 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Register Lymphotrack Samples")
     parser.add_argument(
         "--base-runDir",
-        default=RegisterLymphotrackSamples.DEFAULT_RUNDIR,
-        help=f"Set the Run dir path (default: {RegisterLymphotrackSamples.DEFAULT_RUNDIR}",
+        default=LymphotrackRegister.DEFAULT_RUNDIR,
+        help=f"Set the Run dir path (default: {LymphotrackRegister.DEFAULT_RUNDIR}",
     )
     parser.add_argument(
         "--base-resultsDir",
-        default=RegisterLymphotrackSamples.DEFAULT_RESULTSDIR,
-        help=f"Set the Lymphotrack results folder path (default: {RegisterLymphotrackSamples.DEFAULT_RESULTSDIR}",
+        default=LymphotrackRegister.DEFAULT_RESULTSDIR,
+        help=f"Set the Lymphotrack results folder path (default: {LymphotrackRegister.DEFAULT_RESULTSDIR}",
     )
     parser.add_argument(
         "--db-host", default="localhost", help=f"set mongo db host (default: localhost)"
@@ -608,13 +577,13 @@ def parse_arguments():
     )
     parser.add_argument(
         "--log-dir",
-        default=RegisterLymphotrackSamples.DEFAULT_LOGDIR,
-        help=f"Set the log dir path (default: {RegisterLymphotrackSamples.DEFAULT_LOGDIR})",
+        default=LymphotrackRegister.DEFAULT_LOGDIR,
+        help=f"Set the log dir path (default: {LymphotrackRegister.DEFAULT_LOGDIR})",
     )
     parser.add_argument(
         "--log-file",
-        default=RegisterLymphotrackSamples.DEFAULT_LOGFILE,
-        help=f"Set the log file name (default: {RegisterLymphotrackSamples.DEFAULT_LOGFILE})",
+        default=LymphotrackRegister.DEFAULT_LOGFILE,
+        help=f"Set the log file name (default: {LymphotrackRegister.DEFAULT_LOGFILE})",
     )
     parser.add_argument(
         "--overwrite-db",
@@ -638,88 +607,134 @@ if __name__ == "__main__":
     logger = configure_logging(args.log_level, f"{args.log_dir}/{args.log_file}")
 
     if not args.update_excel:
-        run_folders = RegisterLymphotrackSamples.get_runfolders(RUNDIR=args.base_runDir)
+        run_folders = LymphotrackRegister.get_runfolders(RUNDIR=args.base_runDir)
+        run_register_status_dict = LymphotrackRegister.get_runs_log(
+            LymphotrackRegister.DEFAULT_RUN_STATUS_LOG
+        )
 
         for run in run_folders:
-            run_instance = RegisterLymphotrackSamples(RUNDIR=args.base_runDir, RUN=run)
-            logger.info(f"Processing {run_instance.run_folder_full_path} ...")
-            samples_docs = run_instance.get_docs_to_register()
-            logger.debug(
-                f"Samples from the run {run}, sample docs: {json.dumps(samples_docs)}"
-            )
+            run_basename = os.path.basename(run)
+            run_basename_len = len(run_basename)
+            if not run_basename_len == 34:
+                continue
 
-            if samples_docs is not None:
-                success, sample_count = run_instance.register_to_db(
-                    samples_docs, args.db_name, args.collection_name, args.overwrite_db
-                )
-                if success:
-                    logger.info(
-                        f"Data inserted successfully from the run: {run}. Number of samples added: {sample_count}"
-                    )
-                    touch(
-                        f"{args.base_runDir}/{run}/{RegisterLymphotrackSamples.DEFAULT_REGISTERED_FILE_OUT_NAME}"
-                    )
-                else:
-                    logger.error(
-                        f"Data insertion failed from the run: {run}. Number of samples added: {sample_count}"
-                    )
+            try:
+                run_register_status = run_register_status_dict[run][0]
+                log_info = run_register_status_dict[run][1].strip()
+            except KeyError:
+                run_register_status = log_info = None
 
-            is_lymphotrack_qc_registered = run_instance.get_file_exists_status(
-                f"{run_instance.lymphotrack_qc_registered_file}"
-            )
-            is_lymphotrack_sample_registered = run_instance.get_file_exists_status(
-                f"{run_instance.lymphotrack_registered_file}"
-            )
-            demux_stats_json_exists = run_instance.get_file_exists_status(
-                f"{run_instance.demux_stats_json}"
-            )
-            if not is_lymphotrack_qc_registered and is_lymphotrack_sample_registered:
+            run_to_log = [
+                f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}",
+                run,
+                run_register_status,
+                log_info,
+            ]
+
+            if not os.path.exists(f"{run}/{LymphotrackRegister.RUN_COMPLETED_FILE}"):
                 logger.info(
-                    f"Raw data QC is not registered for the samples from the run: {run}. Attempting to update the qc values"
+                    f"Run {run_basename} is still running. Will try again after a while..."
                 )
-                if demux_stats_json_exists:
+                continue
+
+            if run_register_status != "OK":
+                # Create an instance of LymphotrackRegister
+                run_instance = LymphotrackRegister(RUNDIR=args.base_runDir, RUN=run)
+                run_instance.samples_docs = None
+
+                logger.info(f"Processing {run_instance.RUN} ...")
+
+                (
+                    run_instance.sample_sheet_exists,
+                    run_instance.is_valid,
+                ) = run_instance.check_valid_file(f"{run_instance.sample_sheet}")
+
+                if run_instance.sample_sheet_exists and run_instance.is_valid:
+                    run_instance.samples_docs = run_instance.get_docs_to_register()
+                    logger.debug(
+                        f"Samples from the run {run_instance.RUN}, sample docs: {json.dumps(run_instance.samples_docs)}"
+                    )
+                elif run_instance.sample_sheet_exists and not run_instance.is_valid:
+                    run_to_log[2] = "OK"
+                    run_to_log[3] = "Not Valid"
                     logger.info(
-                        f"Stats json for the run: {run} is available on the server now..."
+                        f"Sample Sheet is not valid for the runId {run_instance.RUN}. Skipping it.."
                     )
-                    demux_stats, run_number, flowcell = run_instance.get_demux_stats()
-                    run_instance.db_connection.connect(args.db_name)
-                    query = {"run_id": run}
-                    db_docs = run_instance.db_connection.get_docs(
-                        args.collection_name, query
+                    continue
+                elif not run_instance.sample_sheet_exists:
+                    run_to_log[2] = "WAIT"
+                    run_to_log[3] = "NO_SAMPLESHEET"
+                    logger.info(
+                        f"Sample Sheet does not exist for the runId {run_instance.RUN}. Still waiting for the status.."
                     )
-                    update_status = run_instance.update_qc_values(
-                        args.collection_name, db_docs, demux_stats, run_number
+                    continue
+                if not run_instance.samples_docs:
+                    logger.info(
+                        f"No samples to register for the runId {run_instance.RUN}. Skipping it.."
                     )
-                    if update_status:
-                        touch(run_instance.lymphotrack_qc_registered_file)
+                    run_to_log[2] = "OK"
+                    run_to_log[3] = "NO_SAMPLES"
+                    continue
+
+                (
+                    run_instance.success,
+                    run_instance.sample_count,
+                ) = run_instance.register_to_db(
+                    run_instance.samples_docs,
+                    args.db_name,
+                    args.collection_name,
+                    args.overwrite_db,
+                )
+                if run_instance.success:
+                    logger.info(
+                        f"Data inserted successfully from the run: {run}. Number of samples added: {run_instance.sample_count}"
+                    )
+                    run_to_log[2] = "OK"
+                    run_to_log[3] = "SAMPLES_DONE"
                 else:
+                    run_to_log[2] = "FAIL"
+                    run_to_log[3] = "SAMPLES_FAILED"
                     logger.error(
-                        f"Stats json for the run: {run} is not available on the server now... Will attempt to update after a while."
+                        f"Data insertion failed from the run: {run}. Number of samples added: {run_instance.sample_count}"
                     )
 
-            logger.info(f"Finished proccessing the run: {run}\n")
+                run_instance.update_run_status_log(
+                    LymphotrackRegister.DEFAULT_RUN_STATUS_LOG, run_to_log
+                )
+            else:
+                logger.warning(f"Samples were already registered for the runId {run}.")
+                run_instance.sample_sheet_exists = run_instance.is_valid = False
 
     else:
-        results_instance = RegisterLymphotrackSamples(RESULTSDIR=args.base_resultsDir)
-        print(results_instance.RESULTSDIR)
-        files = RegisterLymphotrackSamples.get_excelfiles(RESULTS=args.base_resultsDir)
+        # Create an instance of LymphotrackRegister results
+        results_instance = LymphotrackRegister(RESULTSDIR=args.base_resultsDir)
+        logger.info(f"Looking for excel/qc files in {results_instance.RESULTSDIR}")
+        results_instance.files = LymphotrackRegister.get_excelfiles(
+            RESULTS=args.base_resultsDir
+        )
         results_instance.db_connection.connect(args.db_name)
 
-        excel_query = {"lymphotrack_excel": False}
-        qc_query = {"lymphotrack_qc": False}
+        results_instance.excel_query = {"lymphotrack_excel": False}
+        results_instance.qc_query = {"lymphotrack_qc": False}
 
-        samples_docs_excel = results_instance.db_connection.get_docs(
-            args.collection_name, excel_query
+        results_instance.samples_docs_excel = results_instance.db_connection.get_docs(
+            args.collection_name, results_instance.excel_query
         )
 
-        samples_docs_qc = results_instance.db_connection.get_docs(
-            args.collection_name, qc_query
+        results_instance.samples_docs_qc = results_instance.db_connection.get_docs(
+            args.collection_name, results_instance.qc_query
         )
 
-        update_status_qc = results_instance.update_files(
-            args.collection_name, samples_docs_qc, files, "qc"
+        results_instance.update_status_qc = results_instance.update_files(
+            args.collection_name,
+            results_instance.samples_docs_qc,
+            results_instance.files,
+            "qc",
         )
 
-        update_status_excel = results_instance.update_files(
-            args.collection_name, samples_docs_excel, files, "excel"
+        results_instance.update_status_excel = results_instance.update_files(
+            args.collection_name,
+            results_instance.samples_docs_excel,
+            results_instance.files,
+            "excel",
         )
