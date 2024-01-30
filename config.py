@@ -63,7 +63,7 @@ class Config:
         "group_antibodies.png",
     )
 
-    HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF = 97.98
+    HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF = 97.99
     HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF = 97.00
     CLL_SUBSETS = [
         "#1",

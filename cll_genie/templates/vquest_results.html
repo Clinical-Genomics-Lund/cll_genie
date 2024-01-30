@@ -56,11 +56,6 @@
         {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
         {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
         {% set seq_name = seq_id.split('_')[0] %}
-        <p><b>&ensp;&ensp;Summary for the sequence&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_id }}</i></p>
-        <p><b>&ensp;&ensp;Analysed sequence length&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp;: &ensp;&ensp;</b> <i>{{ seq_value['Analysed sequence length']}}</i></p>
-        <p><b>&ensp;&ensp;Sequence analysis category&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;&nbsp;: &ensp;&ensp;</b> <i>{{ seq_value['Sequence analysis category']}}</i>
-        <p><b>&ensp;&ensp;Sequence Merging Count&ensp;&ensp;&nbsp;&ensp;&ensp;&ensp;&ensp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_value['Merge Count']}}</i>
-        <p><b>&ensp;&ensp;Sequence Merging Percentage&ensp;&ensp;&nbsp;&ensp;&ensp;: &ensp;&ensp;</b> <i>{{ seq_value['Total Reads Per']}} %</i>
         </p></br />
         <div id='summary_table'>     
           <table class="report_table" border='1'>
@@ -82,6 +77,26 @@
               {% else %}
                 <i>-</i>
               {% endif %}
+            </tr>
+            <tr>
+              <td style="width:25%"><b>Sequence Merging Count</b></td>
+              <td style="width:25%">
+                {{ seq_value['Merge Count']}}
+              </td>
+              <td style="width:25%"><b>Sequence Merging Percentage</b></td>
+              <td style="width:25%">
+                {{ seq_value['Total Reads Per']}}%
+              </td>
+            </tr>
+            <tr>
+              <td style="width:25%"><b>Sequence length</b></td>
+              <td style="width:25%">
+                {{ seq_value['Analysed sequence length']}}
+              </td>
+              <td style="width:25%"><b>Analysis category</b></td>
+              <td style="width:25%">
+                {{ seq_value['Sequence analysis category'] }}
+              </td>
             </tr>
             {% if seq_value['V-REGION potential ins/del'] is not none %}
               <tr>
@@ -231,8 +246,9 @@
   <form method="POST" action="{{ url_for('main_bp.cll_report', sample_id=sample_id, submission_id=submission_id, _id=_id) }}" enctype="multipart/form-data" id="cll_report" name="cll_report">  
     <input type="hidden" name="sample_id" value="{{ sample_id }}">
     <input type="hidden" name="_id" value="{{ _id }}">
-    <br><label for="report_summary">Summary</label><br>
-    <textarea style="resize: vertical; width: 100%; height: 150px; white-space: pre-line; text-align:justify" id="report_summary" name="report_summary" rows="50" placeholder="Add summary here...">{{ report_summary }}</textarea>
+    <br><label for="report_summary"><center><h2>Analysis Summary</h2></center></label><br>
+    <textarea style="resize: vertical; width: 100%; height: 180px; white-space: pre-line; text-align:justify" id="report_summary" name="report_summary" rows="80" placeholder="Add summary here...">{{ report_summary }}</textarea>
+    <br>
     <div class="button-container">
       <button type="submit" name="_type" value="save_comment" id="save_comment" onclick="saveComment()">
           <p style="font-size: 8pt"><b>Save Comment</b></p>

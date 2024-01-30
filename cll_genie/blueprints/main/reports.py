@@ -199,16 +199,16 @@ class ReportController:
             results_summary = None
 
         # Rearrangement comment
-        if results_summary is not None:
+        if results_summary:
             # Common comment
-            summary_string = "Analysen innefattar amplifiering och sekvensering av klonalt IGH-gen rearrangemang för identifiering av somatisk hypermutationsstatus dvs. muterad (M-CLL) eller icke muterad (U-CLL). Dessutom undersöks eventuell subsettillhörighet (subset #1, #2, #4 eller #8).\n\n"
+            summary_string = "DNA har extraherats från insänt prov och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Analysen omfattar detektion av klonalt IGHV-D-J genrearrangemang, somatisk hypermutationsstatus (muterad, M-CLL eller icke muterad, U-CLL), samt subsettillhörighet (subset #2 eller #8). \n\n"
 
             if number_of_submitted_seqs == 0:
-                summary_string += "I aktuellt KLL prov kan ett funktionellt IGH-gen rearrangemang inte identifieras.\nDå vidare analys av somatisk hypermutationsstatus och subset-tillhörighet ej är utförbart hänvisas aktuellt provet för analys vid avd. för Molekylärpatologi, Uppsala Akademiska Sjukhus.\n\n"
+                summary_string += "Vid analysen påvisas ingen förekomst av klonal IGH-sekvens, varpå analys av IG-genrearrangemang och mutationsstatus inte är möjlig att utföra. Provet skickas till Göteborg för att utföra analys av RNA. \n\n"
             elif number_of_submitted_seqs == 1:
-                summary_string += "I aktuellt KLL prov kan ett funktionellt IGH-gen rearrangemang identifieras.\n\n"
+                summary_string += "Vid analysen finner man en klonal sekvens med ett funktionellt IGH-gen rearrangemang (se tabell Seq1).\n\n"
             elif number_of_submitted_seqs > 1:
-                summary_string += f"I aktuellt KLL prov kan {ReportController.swedish_number_string[number_of_submitted_seqs]} funktionella IGH-gen rearrangemang identifieras.\n\n"
+                summary_string += f"Vid analysen finner man {ReportController.swedish_number_string[number_of_submitted_seqs]} klonala sekvenser, båda med funktionella IGH-gen rearrangemang. (se tabeller; Seq1, Seq2,..) \n\n"
 
             # Hyper mutation status comment
             summary_string += (
@@ -216,12 +216,22 @@ class ReportController:
             )
 
             # Subset comment
-            summary_string += (
-                f"{ReportController.get_subset_string(results_summary)}\n\n"
-            )
+            (
+                subset_string,
+                subset_id,
+            ) = ReportController.get_subset_string(results_summary)
+            summary_string += f"{subset_string}\n\n"
 
             # Clinical Comments
-            # YET TO COME
+            # STILL NEED TO BE MODIFIED
+            # TODO
+            if subset_id == "#2":
+                summary_string += "Subset #2 är riskstratifierande oberoende av mutationsstatus (Nationellt vårdprogram 2022, ERIC Guidelines 2022). \n\n"
+            elif subset_id == "#8":
+                summary_string += " Subset #8 är riskstratifierande och associerad Richerstransformation (Nationellt vårdprogram 2022, ERIC Guidelines 2022). \n\n"
+            else:
+                summary_string += "Mutationsstatus är riskstratifierande samt vägledande vid behandlingsval av KLL (Nationellt vårdprogram 2022, ERIC Guidelines 2022).\n\n"
+
         else:
             summary_string = None
 
@@ -244,14 +254,20 @@ class ReportController:
             > cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
             for v_identity_per in v_identity
         ):
-            return_string = f"Analysen av den {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar ingen förekomst av somatisk hypermutation (U-CLL) i det aktuella provet ({v_identity_string}% identitet mot IGHV-genen)."
+            if seq_count == 1:
+                return_string = f"Analysen påvisar ingen somatisk hypermutation (U-CLL) ({v_identity_string}% identitet mot IGHV-genen)."
+            elif seq_count > 1:
+                return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna påvisar ingen somatisk hypermutation (U-CLL) ({v_identity_string}% identitet mot IGHV-genen)."
 
         elif all(
             float(v_identity_per)
             < cll_app.config["HYPER_MUTATION_BORDERLINE_LOWER_CUTOFF"]
             for v_identity_per in v_identity
         ):
-            return_string = f"Analysen av den {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar förekomst av somatisk hypermutation (M-CLL) i det aktuella provet ({v_identity_string}% identitet mot IGHV-genen)"
+            if seq_count == 1:
+                return_string = f"Analysen påvisar somatisk hypermutation (M-CLL) ({v_identity_string}% identitet mot IGHV-genen)"
+            elif seq_count > 1:
+                return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna påvisar förekomst av somatisk hypermutation (M-CLL) ({v_identity_string}% identitet mot IGHV-genen)."
 
         elif all(
             float(v_identity_per)
@@ -260,10 +276,13 @@ class ReportController:
             <= cll_app.config["HYPER_MUTATION_BORDERLINE_UPPER_CUTOFF"]
             for v_identity_per in v_identity
         ):
-            return_string = f"Analysen av den {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar borderline-resultat i det aktuella provet (97-97.98% identitet mot IGHV-genen). Det är således omöjligt att säkerställa mutationsstatus för aktuellt prov"
+            if seq_count == 1:
+                return_string = f"Analysen påvisar ett borderline-resultat ({v_identity_string}% identitet mot IGHV-genen)."
+            elif seq_count > 1:
+                return_string = f"Analysen av den {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna påvisar ett borderline-resultat ({v_identity_string}% identitet mot IGHV-genen)."
 
         else:
-            return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna i IMGT/V-QUEST påvisar motsägelsefulla resultat med avseende på förekomst av somatisk hypermutation ({v_identity_string}% identitet mot IGHV-genen) i det aktuella provet. Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov."
+            return_string = f"Analysen av de {ReportController.swedish_number_string[seq_count]} produktiva IGH-gensekvenserna påvisar ett icke-konklusivt resultat av somatisk hypermutation ({v_identity_string}% identitet mot IGHV-genen). Det är således inte möjligt att säkerställa mutationsstatus för aktuellt prov. Provet skickas till Göteborg för att utföra analys av RNA. Provet skickas till Göteborg för att utföra analys av RNA."
 
         return return_string
 
@@ -271,6 +290,7 @@ class ReportController:
     def get_subset_string(results_dict):
         seqs = list(results_dict.keys())
         return_string = ""
+        return_subset = None
         subset_ids = list(
             set(
                 [
@@ -283,15 +303,18 @@ class ReportController:
         subset_count = len(subset_ids)
 
         if subset_count == 1 and subset_ids[0] is not None:
-            return_string = f"Vidare påvisar subset-analysen att det aktuella provet tillhör subset {subset_ids[0]}"
+            return_string = (
+                f"Vidare påvisas subsettillhörighet till subset {subset_ids[0]}"
+            )
+            return_subset = subset_ids[0]
 
-        elif subset_count == 1 and subset_ids[0] is None:
-            return_string = f"Vidare påvisar subset-analysen ingen subsettillhörighet med avseende på subset #1 #2, #4 eller #8 i det aktuella provet"
+        elif (subset_count == 1 and subset_ids[0] is None) or subset_count == 0:
+            return_string = f"Analysen påvisar ingen subsettillhörighet."
 
         elif subset_count > 1:
-            return_string = f"Dessutom visar delmängdsanalysen motsägelsefullt delmängdsmedlemskap med avseende på delmängd #1 #2, #4 eller #8 i det aktuella urvalet. Någon avgörande delmängdstilldelning kan därför inte göras."
+            return_string = f"Dessutom visar delmängdsanalysen motsägelsefullt delmängdsmedlemskap med avseende på delmängd #2 eller #8 i det aktuella urvalet. Någon avgörande delmängdstilldelning kan därför inte göras."
 
-        return return_string
+        return return_string, return_subset
 
     @staticmethod
     def delete_cll_report(_id: str, report_id: str) -> bool:

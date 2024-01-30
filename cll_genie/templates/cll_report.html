@@ -59,23 +59,12 @@
   <div style="page-break-after: always;"></div>
   <div class="report_div" style="page-break-inside: avoid;">
   <span class="report_header">Detaljerade Analysresultat</span>
-
     {% set seq_count = 1 %}
     {% for seq_id, seq_value in results_summary.items() %} 
     {% set v_indel_identity_per = seq_value['V-REGION identity % (with ins/del events)'] %} 
     {% set v_indel_identity_nt = seq_value['V-REGION identity nt (with ins/del events)'] %}
     {% set seq_name = seq_id.split('_')[0] %}
-    <p>
-      <b>Sammanfattning för sekvens-ID{{ ("&nbsp;" * 7|int)|safe }}:{{ ("&nbsp;" * 4|int)|safe }}</b><i>{{ seq_name }}</i>
-    </p>
-    <p>
-      <b>Analyserad sekvenslängd{{ ("&nbsp;" * 16|int)|safe }}&nbsp;:{{ ("&nbsp;" * 4|int)|safe }}</b
-      ><i>{{ seq_value['Analysed sequence length'] }}</i>
-    </p>
-    <p>
-      <b>Sekvensanalyskategori{{ ("&nbsp;" * 21|int)|safe }}:{{ ("&nbsp;" * 4|int)|safe }}</b
-      ><i>{{ seq_value['Sequence analysis category'] }}</i>
-    </p>
+    <br><br>
     <table class="report_variant">
       <tr>
         <th class="report_variant_header" colspan="4">
@@ -100,6 +89,20 @@
           {% else %}
             <i>-</i>
           {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="report_key" >
+          Analyserad sekvenslängd
+        </td>
+        <td class="var_report_val">
+          {{ seq_value['Analysed sequence length'] }}
+        </td>
+        <td class="report_key">
+          Sekvensanalyskategori
+        </td>
+        <td class="var_report_val" style="background-color: #FFFFE0">
+          {{ seq_value['Sequence analysis category'] }}
         </td>
       </tr>
       {% if v_indel_identity_per is not none %}
@@ -179,21 +182,19 @@
         </td>
       </tr>
     </table>
-    <br>
     <hr>
     {% set seq_count = seq_count + 1 %} {% endfor %}
   </div>
 {% endif %}
 <span class="report_header">Analysbeskrivning</span>
 <span class="report_text_medium">
-  DNA har extraherats från insänt prov (vanligtvis färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS). Sekvensanalysen omfattar IGH-genen som inkluderas i LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe). Efterföljande sekvensanalys genomförs då sekvenseringen uppfyller QC-kraven Analysen avser detektion av funktionellt IGH-genrearrangemang (V-, D- och J-gen), förekomst av mutationsstatus samt subsettillhörighet och utförs via webbtjänsten <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. I de fall där den analyserade sekvensen avviker från germline-sekvensen i IMGT/V-QUEST (<97% identitet) bedöms provet vara hypermuterat (M-CLL). Om den analyserade sekvensen däremot har ≥98 identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99%.  
-
-  Detektion av subsettillhörighet görs genom analys av IGH-genes struktur mot Vidare analyseras IGH-genes struktur då denna kan påvisa subsettillhörighet och där specifika subsets delar biologiska och kliniska egenskaper. Subsetanalysen görs via IMGT/VQUEST (subset 2 och 8) och Arrest (subset 1 och 4).
+  DNA har extraherats från insänt prov (färskt benmärgsprov eller blodprov) och analyserats med massiv parallell sekvensering (MPS, även kallat NGS) på Illuminas MiSeq system (läslängd: 2x301 bp). Sekvensanalysen omfattar LymphoTrack Dx IGHV Leader Somatic Hypermutation Assay (Invivoscribe) och klonalitetsanalys i mjukvaruprogrammet LymphoTrack Dx Software. Efterföljande analys av funktionell klonal sekvens (utan stoppkodon och läsramsförskjutning) utförs i CLL Genie via databasen <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (Brochet et al 2008) och avser detektion av funktionellt IGH-genrearrangemang (IGHV-IGHD-IGHJ), IGHV-mutationsstatus samt subsettillhörighet. I de fall då den klonala sekvensen inkluderar en indel gäller den första angivna frekvensen för identitet mot IGHV-genen för mutationsstatus i tabellen från <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> vilken anges i svaret. I de fall då den klonala sekvensen avviker från germline-sekvensen i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a> (<98% identitet) bedöms den vara hypermuterad (M-CLL). Om den analyserade sekvensen däremot har ≥98 identitet mot germline-sekvensen bedöms provet som icke-muterat (U-CLL). Borderlinetillhörighet anges då sekvensidentiteten faller inom 97-97.99% identitet mot referenssekvenserna i IMGT/V-QUEST. I de fall där flera klonala sekvenser analyseras, ställs mutationsstatus utifrån den sammanslagna bedömningen av de analyserade sekvenserna. Identifiering av subsettillhörighet till subset #2 och #8 görs genom analys av den klonala IGH-genes struktur mot fördefinierad subsetinformation i <a href="https://www.imgt.org/IMGT_vquest/vquest" target="_blank">IMGT/V-QUEST</a>. 
 </span>
 <span class="report_header">References</span>
 <span class="report_text_medium">
-[1] Agathangelidis, A., Chatzidimitriou, A., Chatzikonstantinou, T., Tresoldi, C., Davis, Z., Giudicelli, V., ... & ERIC, the European Research Initiative on CLL. (2022). Immunoglobulin gene sequence analysis in chronic lymphocytic leukemia: the 2022 update of the recommendations by ERIC, the European Research Initiative on CLL. Leukemia, 36(8), 1961-1968.<br><br>
-[2] Brochet, X., Lefranc, M. P., & Giudicelli, V. (2008). IMGT/V-QUEST: the highly customized and integrated system for IG and TR standardized VJ and VDJ sequence analysis. Nucleic acids research, 36(suppl_2), W503-W508.
+[1] Nationellt vårdprogram kronisk lymfatisk leukemi, KLL - RCC Kunskapsbanken (cancercentrum.se)<br><br>
+[2] Brochet X, Lefranc MP, Giudicelli V. IMGT/V-QUEST: the highly customized and integrated system for IG and TR standardized V-J and V-D-J sequence analysis. Nucleic Acids Res. 2008;36(Web Server issue):W503-W508.<br><br>
+[3] Agathangelidis A, Chatzidimitriou A, Chatzikonstantinou T, et al. Immunoglobulin gene sequence analysis in chronic lymphocytic leukemia: the 2022 update of the recommendations by ERIC, the European Research Initiative on CLL Leukemia. 2022;36(8):1961-1968. <br><br>
 </span>
 {% endblock %}
 

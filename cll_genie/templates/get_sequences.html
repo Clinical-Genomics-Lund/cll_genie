@@ -120,9 +120,11 @@ scripts %}
     <center>
     {% if filter_message is none%}
       <button type="submit" id="vquestanalysis" formaction="{{ url_for('main_bp.vquest_analysis', sample_id=sample_id, _id=_id) }}" onclick="return validateForm('vquest_analysis_router');">Proceed to IMGT V-Quest Configuration</button>
+      {% set NR_text = "Vid analysen finner man en klonal sekvens, men då denna sekvens saknar ett  funktionellt IGH-genrearrangemang kan mutationsstatus inte undersökas. Provet skickas  till Göteborg för att utföra analys av RNA." %}
     {% elif filter_message is not none%}
       <p><b>{{ filter_message|safe }}</b></p>
       <br /><br />
+      {% set NR_text = "Vid analysen påvisas ingen förekomst av klonal IGH-sekvens, varpå analys av IG-genrearrangemang och mutationsstatus inte är möjlig att utföra. Provet skickas till Göteborg för att utföra analys av RNA."%}
     {% endif %} 
   </form>
 
@@ -133,9 +135,11 @@ scripts %}
 
 
   <div id="NRCommentForm" style="display: none;">
+    <center><span class="pane-title"><b>Type in your comment for the report</b></span><br><br></center>
     <form name="NRCommentForm" method="POST" enctype="multipart/form-data" action="{{ url_for('main_bp.negative_report', sample_id=sample_id, _id=_id) }}">
       <center>
-      <textarea style="resize: vertical; width: 70%; height: 60px; white-space: pre-line; text-align:justify" name="negative_report_comment" placeholder="Enter your comment">Efter den initiala filtreringsprocessen fanns inga potentiella sammanslagna sekvenser kvar. På grund av detta skickades inte data till IMGT-servern, vilket resulterade i frånvaron av några Vquest-resultat.</textarea><br>
+      <textarea style="resize: vertical; width: 70%; height: 60px; white-space: pre-line; text-align:justify" name="negative_report_comment" placeholder="Enter your comment">{{ NR_text }}
+      </textarea><br>
           <button style="margin-bottom: 10px; padding-left: 10px; padding-right: 10px;padding-top: 2px; padding-bottom: 2px; align: center" type="submit" id="NRCommentButton"  onclick="return confirm('Are you sure, you want to create No result report for the sample: {{sample_id}}?')"><p style="font-size: 8pt"><b>Submit</b></p></button>
         </center>
     </form>
