@@ -145,9 +145,9 @@ class ReportController:
         if results:
             for sid in results.keys():
                 if sid not in submissions_counts:
-                    submissions_counts[
-                        sid
-                    ] = ReportController.get_submission_report_counts(_id, sid)
+                    submissions_counts[sid] = (
+                        ReportController.get_submission_report_counts(_id, sid)
+                    )
 
         return submissions_counts
 
@@ -230,7 +230,7 @@ class ReportController:
             elif subset_id == "#8":
                 summary_string += " Subset #8 är riskstratifierande och associerad Richerstransformation (Nationellt vårdprogram 2022, ERIC Guidelines 2022). \n\n"
             else:
-                summary_string += "Mutationsstatus är riskstratifierande samt vägledande vid behandlingsval av KLL (Nationellt vårdprogram 2022, ERIC Guidelines 2022).\n\n"
+                summary_string += "Mutationsstatus är riskstratifierande samt behandlingsvägledande vid KLL (Nationellt vårdprogram 2022, ERIC Guidelines 2022).\n\n"
 
         else:
             summary_string = None
