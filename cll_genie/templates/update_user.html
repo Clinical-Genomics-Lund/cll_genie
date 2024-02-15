@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Update User{% endblock %}
+{% block scripts %}
+<style>
+  /* General body styling */
+
+  
+  /* Container styling */
+
+  
+  /* Form styling */
+  form {
+    background-color: #fff;
+    padding: 20px;
+    margin: 0 auto;
+    width: 50%; /* Adjust width as needed */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft shadow for a 'card' effect */
+    overflow-wrap: break-word;
+  }
+  
+  /* Style for form elements */
+  input[type="text"],
+  input[type="email"],
+  select {
+    width: 100%; /* Full width of the form */
+    padding: 10px;
+    margin: 10px 0; /* Add some space between the fields */
+    box-sizing: border-box; /* Include padding in the width calculation */
+    border: 1px solid #ddd;
+    border-radius: 4px; /* Slightly rounded corners */
+  }
+  
+  /* Button styling */
+  .btn {
+    border: none;
+    padding: 10px 20px;
+    margin-top: 10px; /* Space above the button */
+    border-radius: 4px;
+    width: 30%;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .btn-primary:hover {
+    background-color: rgb(170,73,37); /* Darker shade for hover state */
+    color: #000;
+  }
+  
+  /* Margin bottom for form groups */
+  .mb-3 {
+    margin-bottom: 16px;
+  }
+  
+  /* Styling for labels */
+  label {
+    display: block;
+    margin-bottom: .5rem;
+    color: #333;
+  }
+  
+  /* Error message styling */
+  .error-message {
+    color: red;
+    font-size: 0.8em;
+    margin-top: -10px;
+    margin-bottom: 10px;
+  }
+  
+  /* Hide the actual user_id input field as it seems to be non-editable */
+  input[name="user_id"] {
+    display: none;
+  }
+  
+  /* Styling for displaying non-editable data */
+  .data-display {
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    {% if not user_found %}
+        <center><h1>Search for a User</h1></center>
+        <form method="POST">
+            {{ search_form.hidden_tag() }}
+            {{ search_form.username.label }}
+            {{ search_form.username }}
+            <button type="submit" name="submit" value=true class="btn btn-primary">Search</button>
+        </form>
+    {% else %}
+        <center><h1>Edit User Details</h1></center>
+        <form method="POST">
+            {{ edit_form.hidden_tag() }}
+            <div class="mb-3">
+                {{ edit_form.user_id.label }}
+                <b><i>{{ edit_form.user_id.data }}</i></b>
+                {{ edit_form.user_id() }}
+            </div>
+            <div class="mb-3">
+                {{ edit_form.fullname.label }}
+                {{ edit_form.fullname }}
+            </div>
+            <div class="mb-3">
+                {{ edit_form.email.label }}
+                {{ edit_form.email }}
+            </div>
+            <div class="mb-3">
+                {{ edit_form.add_groups.label }}
+                {{ edit_form.add_groups }}
+            </div>
+            <div class="mb-3">
+                {{ edit_form.remove_groups.label }}
+                {{ edit_form.remove_groups }}
+            </div>
+            <div class="mb-3">
+                {{ edit_form.groups.label }}
+                {{ edit_form.groups.data }}
+            </div>
+            <!-- Add other fields as necessary -->
+            <button type="submit" name="save" class="btn btn-primary" value=true>Save Changes</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

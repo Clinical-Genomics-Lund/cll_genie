@@ -23,11 +23,19 @@ from cll_genie.blueprints.main.samplelists import SampleListController
 from cll_genie.blueprints.main import main_bp
 from cll_genie.blueprints.main.vquest_results_controller import ResultsController
 from cll_genie.blueprints.main.reports import ReportController
+from cll_genie.blueprints.login.login import (
+    UserForm,
+    UpdateUser,
+    SearchUserForm,
+    EditUserForm,
+)
 from urllib.parse import urlencode
 import ast
 import shutil
 from bson import ObjectId
 from datetime import datetime
+from werkzeug.security import generate_password_hash
+from cll_genie.extensions import mongo
 
 
 @main_bp.route("/")
@@ -297,9 +305,9 @@ def get_sequences(sample_id: str):
                     )
 
                 for i in range(filtered_data_len):
-                    filtered_data.loc[
-                        i, "Select"
-                    ] = f"<input type=\"checkbox\" name=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" id=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" value=\">Seq{str(filtered_data.loc[i, 'Rank'])}_{sample_id};{str(filtered_data.loc[i, 'Sequence'])};{int(filtered_data.loc[i, 'Merge count'])};{float(filtered_data.loc[i, '% total reads'])}\n\">"
+                    filtered_data.loc[i, "Select"] = (
+                        f"<input type=\"checkbox\" name=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" id=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" value=\">Seq{str(filtered_data.loc[i, 'Rank'])}_{sample_id};{str(filtered_data.loc[i, 'Sequence'])};{int(filtered_data.loc[i, 'Merge count'])};{float(filtered_data.loc[i, '% total reads'])}\n\">"
+                    )
 
                 html_table = filtered_data.to_html(
                     index=False, classes="df-table-class", escape=False
@@ -404,9 +412,9 @@ def vquest_results(sample_id: str):
                     seq_id != "parameters"
                     and selected_sequences_merging_rate is not None
                 ):
-                    vquest_results_raw[sample_id][seq_id]["summary"][
-                        "Merge Count"
-                    ] = int(selected_sequences_merging_rate[seq_id][0])
+                    vquest_results_raw[sample_id][seq_id]["summary"]["Merge Count"] = (
+                        int(selected_sequences_merging_rate[seq_id][0])
+                    )
                     vquest_results_raw[sample_id][seq_id]["summary"][
                         "Total Reads Per"
                     ] = round(
@@ -916,3 +924,107 @@ def delete_results(id: str, sub_id: str):
         )
 
     return redirect(url_for("main_bp.sample", sample_id=sample_id, _id=id))
+
+
+@main_bp.route("/admin/", methods=["GET"])
+@login_required
+def admin():
+    if current_user.admin():
+        return render_template("admin.html")
+    else:
+        abort(403)
+
+
+@main_bp.route("/add_user/", methods=["GET", "POST"])
+@login_required
+def add_user():
+    if not current_user.admin():
+        abort(403)
+
+    form = UserForm()
+    if form.validate_on_submit():
+        groups = []
+        if form.lymphotrack.data:
+            groups.append("lymphotrack")
+
+        if form.lymphotrack_admin.data:
+            groups.append("lymphotrack_admin")
+
+        user_obj = UpdateUser(
+            form.username.data,
+            form.password.data,
+            groups,
+            form.fullname.data,
+            form.email.data,
+        )
+
+        if user_obj.add_user():
+            flash("User added successfully!", "success")
+            return redirect(url_for("main_bp.add_user"))
+        else:
+            flash("User not added!", "error")
+
+    return render_template("add_user.html", title="Add User", form=form)
+
+
+@main_bp.route("/update_user/", methods=["GET", "POST"])
+def update_user():
+    if not current_user.admin():
+        abort(403)
+
+    search_form = SearchUserForm()
+    edit_form = None  # Initialize edit_form as None
+    user_found = False
+
+    if search_form.validate_on_submit() and search_form.submit.data:
+        username = search_form.username.data
+        user_obj = UpdateUser(user=username)
+        user_found = user_obj.user_exists()
+
+        if user_found:
+            user_data = user_obj.get_user_data()
+            edit_form = EditUserForm()
+            edit_form.user_id.data = user_obj.get_username()
+            edit_form.fullname.data = user_data.get("fullname", "")
+            edit_form.email.data = user_data.get("email", "")
+            edit_form.groups.data = ", ".join(user_data.get("groups", ""))
+        else:
+            pass
+
+    if not user_found:
+        edit_form = EditUserForm()
+
+    if edit_form.validate_on_submit() and edit_form.save.data:
+        edit_user_obj = UpdateUser(user=edit_form.user_id.data)
+        success = edit_user_obj.update_user_details(edit_form.data)
+        if success:
+            flash("User details updated successfully.", "success")
+            cll_app.logger.info(
+                f"Details updated successfully for the user {edit_form.user_id.data}"
+            )
+            return redirect(url_for("main_bp.admin"))
+        else:
+            cll_app.logger.error(
+                f"Failed to update user details for the user {edit_form.user_id.data}"
+            )
+            flash("Failed to update user details.", "danger")
+    else:
+        cll_app.logger.error(
+            f"Form validation failed for the user {edit_form.user_id.data}\n{edit_form.errors}"
+        )
+
+    return render_template(
+        "update_user.html",
+        search_form=search_form,
+        edit_form=edit_form,
+        user_found=user_found,
+    )
+
+
+@main_bp.route("/remove_user/", methods=["GET", "POST"])
+@login_required
+def remove_user():
+    if current_user.admin():
+        return render_template("remove_user.html")
+    else:
+        abort(403)
