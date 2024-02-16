@@ -5,26 +5,20 @@
 {% block body %}
 <div class="container mt-5">
   <div class="row">
-    <!-- Create New Users Card -->
     <div class="col-md-4">
       <div class="card" style="width: 18rem;">
         <div class="card-body">
-          <a href="{{ url_for('main_bp.add_user') }}" class="btn btn-primary">Create User</a>
+          <a href="{{ url_for('login_bp.add_user') }}" class="btn btn-primary">Create User</a>
         </div>
       </div>
     </div>
-
     <br>
-
-    <!-- Create New Users Card -->
     <div class="col-md-4">
       <div class="card" style="width: 18rem;">
         <div class="card-body">
-          <a href="{{ url_for('main_bp.update_user') }}" class="btn btn-primary">Update User</a>
+          <a href="{{ url_for('login_bp.update_user') }}" class="btn btn-primary">Update User</a>
         </div>
       </div>
     </div>
-
     <br>
-
 {% endblock %}
