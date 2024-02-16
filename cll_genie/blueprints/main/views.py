@@ -28,6 +28,8 @@ import ast
 import shutil
 from bson import ObjectId
 from datetime import datetime
+from werkzeug.security import generate_password_hash
+from cll_genie.extensions import mongo
 
 
 @main_bp.route("/")
@@ -297,9 +299,9 @@ def get_sequences(sample_id: str):
                     )
 
                 for i in range(filtered_data_len):
-                    filtered_data.loc[
-                        i, "Select"
-                    ] = f"<input type=\"checkbox\" name=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" id=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" value=\">Seq{str(filtered_data.loc[i, 'Rank'])}_{sample_id};{str(filtered_data.loc[i, 'Sequence'])};{int(filtered_data.loc[i, 'Merge count'])};{float(filtered_data.loc[i, '% total reads'])}\n\">"
+                    filtered_data.loc[i, "Select"] = (
+                        f"<input type=\"checkbox\" name=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" id=\"checkbox{str(filtered_data.loc[i, 'Rank'])}\" value=\">Seq{str(filtered_data.loc[i, 'Rank'])}_{sample_id};{str(filtered_data.loc[i, 'Sequence'])};{int(filtered_data.loc[i, 'Merge count'])};{float(filtered_data.loc[i, '% total reads'])}\n\">"
+                    )
 
                 html_table = filtered_data.to_html(
                     index=False, classes="df-table-class", escape=False
@@ -404,9 +406,9 @@ def vquest_results(sample_id: str):
                     seq_id != "parameters"
                     and selected_sequences_merging_rate is not None
                 ):
-                    vquest_results_raw[sample_id][seq_id]["summary"][
-                        "Merge Count"
-                    ] = int(selected_sequences_merging_rate[seq_id][0])
+                    vquest_results_raw[sample_id][seq_id]["summary"]["Merge Count"] = (
+                        int(selected_sequences_merging_rate[seq_id][0])
+                    )
                     vquest_results_raw[sample_id][seq_id]["summary"][
                         "Total Reads Per"
                     ] = round(
@@ -916,3 +918,12 @@ def delete_results(id: str, sub_id: str):
         )
 
     return redirect(url_for("main_bp.sample", sample_id=sample_id, _id=id))
+
+
+@main_bp.route("/admin/", methods=["GET"])
+@login_required
+def admin():
+    if current_user.admin():
+        return render_template("admin.html")
+    else:
+        abort(403)

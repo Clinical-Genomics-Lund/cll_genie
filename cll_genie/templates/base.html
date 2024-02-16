@@ -25,7 +25,13 @@
             <p style='font-size:9pt; color: rgb(223, 120, 73); position:absolute; top:60px; left:100px; text-shadow: 4px 4px 15px #000;'><b>CHRONIC LYMPHOCYTIC LEUKEMIA, Powered by IMGT</b></p></span>
             <div id='login'>
                 {% if current_user.is_authenticated %}
-                    <span style="display: flex; align-items: center;" class="logged-in"><img height=50 src="{{ url_for('static', filename='icons/user-512.png') }}">&nbsp;&nbsp;{{ current_user.get_fullname() }}
+                    <span style="display: flex; align-items: center;" class="logged-in">
+                      {% if current_user.admin %}
+                      <a href="{{ url_for('main_bp.admin') }}"><img height=50 src="{{ url_for('static', filename='icons/user-512.png') }}"></a>
+                      {% else %}
+                        <img height=50 src="{{ url_for('static', filename='icons/user-512.png') }}">
+                      {% endif %}
+                      &nbsp;&nbsp;{{ current_user.get_fullname() }}
                     <a class="logout-link" href="{{ url_for('login_bp.logout') }}"><img height=30 src="{{ url_for('static', filename='icons/logout-96.png') }}"></a>
                   </span>
                 {% else %}

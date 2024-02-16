@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}CLL Genie User Sign-up{% endblock %}
+{% block scripts %}
+<style>
+  /* Apply a general style to the body for a nice background and font */
+
+  /* Center the form on the page */
+  form {
+    background-color: #fff;
+    padding: 20px;
+    margin: 0 auto;
+    width: 50%; /* Adjust width as needed */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Soft shadow for a 'card' effect */
+  }
+  
+  /* Style individual input elements */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"] {
+    width: 100%; /* Full width of the form */
+    padding: 10px;
+    margin: 10px 0; /* Add some space between the fields */
+    box-sizing: border-box; /* Include padding in the width calculation */
+    border: 1px solid #ddd;
+    border-radius: 4px; /* Slightly rounded corners */
+  }
+  
+  /* Style the select group area */
+  .select-group {
+    display: flex;
+    justify-content: space-between; /* Evenly space the group items */
+    align-items: center;
+    margin: 10px 0;
+  }
+  
+  /* Style each group item */
+  .group-item {
+    flex: 1; /* Each item will take up equal space */
+    margin-right: 10px; /* Add some space between the items */
+  }
+  
+  .group-item:last-child {
+    margin-right: 0; /* No margin for the last item */
+  }
+  
+  /* Style the checkbox areas */
+  .checkbox-group {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Style the submit button */
+  input[type="submit"] {
+    background-color: #8b5c7e; /* A nice color for the button */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  input[type="submit"]:hover {
+    background-color: #7a4d6e; /* Darker shade for hover state */
+  }
+  
+  /* Error message styling */
+  .invalid-feedback {
+    color: red;
+    font-size: 0.8em;
+    margin-top: -10px;
+    margin-bottom: 10px;
+  }
+  
+</style>
+{% endblock %}
+
+
+{% block body %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6"> 
+      <center><h1 class="text-center mb-4">New User Sign-up</h1></center>
+      <form method="POST" name="form">
+        {{ form.csrf_token }}
+        <div class="mb-3">
+          {{ form.username.label(class="form-label") }}
+          {{ form.username(class="form-control") }}
+          {% if form.username.errors %}
+            {% for error in form.username.errors %}
+              <div class="invalid-feedback" style="display:block;">{{ error }}</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        
+        <div class="mb-3">
+          {{ form.fullname.label(class="form-label") }}
+          {{ form.fullname(class="form-control") }}
+          {% if form.fullname.errors %}
+            {% for error in form.fullname.errors %}
+              <div class="invalid-feedback" style="display:block;">{{ error }}</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        
+        <div class="mb-3">
+          {{ form.email.label(class="form-label") }}
+          {{ form.email(class="form-control") }}
+          {% if form.email.errors %}
+            {% for error in form.email.errors %}
+              <div class="invalid-feedback" style="display:block;">{{ error }}</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        
+        <div class="mb-3">
+          {{ form.password.label(class="form-label") }}
+          {{ form.password(class="form-control") }}
+          {% if form.password.errors %}
+            {% for error in form.password.errors %}
+              <div class="invalid-feedback" style="display:block;">{{ error }}</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        
+        <div class="mb-3">
+          {{ form.confirm_password.label(class="form-label") }}
+          {{ form.confirm_password(class="form-control") }}
+          {% if form.confirm_password.errors %}
+            {% for error in form.confirm_password.errors %}
+              <div class="invalid-feedback" style="display:block;">{{ error }}</div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        <span><h4 style="margin:0px">Select Groups:</h4></span>
+        <div class="checkbox-group">
+            <div class="form-check inline-checkbox">
+                {{ form.lymphotrack.label(class="form-check-label") }}
+                {{ form.lymphotrack(class="form-check-input") }}
+                {% if form.lymphotrack.errors %}
+                    {% for error in form.lymphotrack.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            
+            <div class="form-check inline-checkbox">
+                {{ form.lymphotrack_admin.label(class="form-check-label") }}
+                {{ form.lymphotrack_admin(class="form-check-input") }}
+                {% if form.lymphotrack_admin.errors %}
+                    {% for error in form.lymphotrack_admin.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary">Sign up</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
