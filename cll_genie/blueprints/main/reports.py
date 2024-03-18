@@ -230,7 +230,7 @@ class ReportController:
             elif subset_id == "#8":
                 summary_string += " Subset #8 är riskstratifierande och associerad Richerstransformation (Nationellt vårdprogram 2022, ERIC Guidelines 2022). \n\n"
             else:
-                summary_string += "Mutationsstatus är riskstratifierande samt behandlingsvägledande vid KLL (Nationellt vårdprogram 2022, ERIC Guidelines 2022).\n\n"
+                summary_string += "Mutationsstatus är riskstratifierande samt behandlingsstyrande vid KLL (Nationellt vårdprogram 2022, ERIC Guidelines 2022).\n\n"
 
         else:
             summary_string = None

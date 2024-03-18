@@ -5,7 +5,10 @@ SCRIPT_NAME='/cll_genie' # For production use only
 
 
 # Build CDM docker image and start on lennart
-version="1.0.0"
+SCRIPT_PATH=$(realpath "$0")
+APP_DIR=$(dirname "$(dirname "$SCRIPT_PATH")")
+version=$( cat "$APP_DIR/version.py" | grep __version__ | awk -F"\"" '{print $2}' )
+# version=$( python -c "from version import __version__; print(__version__)" )
 # version=$(python -c "import cll_genie_app.__version__; print(__version__.__version__)")
 
 # Get the latest tag for the main branch (assuming the main branch is checked out)

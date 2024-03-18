@@ -48,7 +48,7 @@
     </tr><tr>
         <td>Q30 AT Reads Percentage</td>
         {% if sample.q30_per is not none %}
-            <td style="color: {{ 'red' if sample.q30_per|float < 80.00 else 'black' }}">{{ sample.q30_per }}%</td>
+            <td style="color: {{ 'red' if sample.q30_per|float < 70.00 else 'black' }}">{{ sample.q30_per }}%</td>
         {% endif %}
     </tr><tr>
         <td>VQuest Analysis</td>

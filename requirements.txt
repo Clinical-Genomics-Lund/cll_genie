@@ -30,3 +30,4 @@ urllib3==1.26.15
 weasyprint==58.1
 Werkzeug==2.2.2
 WTForms==3.0.1
+email_validator==2.1.0

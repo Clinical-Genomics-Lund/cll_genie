@@ -10,7 +10,7 @@ services:
       dockerfile: Dockerfile.dev
       network: host
       target: cll_genie_app_dev
-    image: cll_genie:0.0.3_dev
+    image: cll_genie:0.0_5_dev
     network_mode: bridge
     ports:
       - "5814:8000"
